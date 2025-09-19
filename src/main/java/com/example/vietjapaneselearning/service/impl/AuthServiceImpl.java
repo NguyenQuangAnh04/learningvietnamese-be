@@ -1,0 +1,110 @@
+package com.example.vietjapaneselearning.service.impl;
+
+import com.example.vietjapaneselearning.dto.request.AuthRequest;
+import com.example.vietjapaneselearning.dto.request.RegisterRequest;
+import com.example.vietjapaneselearning.dto.response.AuthResponse;
+import com.example.vietjapaneselearning.enums.RoleEnum;
+import com.example.vietjapaneselearning.model.Role;
+import com.example.vietjapaneselearning.model.Token;
+import com.example.vietjapaneselearning.model.User;
+import com.example.vietjapaneselearning.repository.RoleRepository;
+import com.example.vietjapaneselearning.repository.TokenRepository;
+import com.example.vietjapaneselearning.repository.UserRepository;
+import com.example.vietjapaneselearning.security.JwtUtils;
+import com.example.vietjapaneselearning.service.IAuthService;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+public class AuthServiceImpl implements IAuthService {
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private JwtUtils jwtUtils;
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+    @Autowired
+    private RoleRepository roleRepository;
+    @Autowired
+    private TokenRepository tokenRepository;
+
+
+    @Override
+    public AuthResponse login(AuthRequest request, HttpServletResponse response) {
+        User user = userRepository.findByEmail(request.getEmail()).orElseThrow(
+                () -> new EntityNotFoundException("Account does not register!")
+        );
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Check password or email");
+        }
+
+        Optional<Token> token = tokenRepository.findByUser(user);
+        String refreshToken = null;
+        if (token.isPresent() && token.get().getExpiryDate().isAfter(LocalDateTime.now())) {
+            refreshToken = token.get().getRefreshToken();
+            long secondsLeft = Duration.between(LocalDateTime.now(), token.get().getExpiryDate()).getSeconds();
+            Cookie cookie = new Cookie("refresh_token", refreshToken);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setMaxAge((int) secondsLeft);
+            response.addCookie(cookie);
+        } else {
+            refreshToken = UUID.randomUUID().toString();
+            Cookie cookie = new Cookie("refresh_token", refreshToken);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setMaxAge(7 * 24 * 60 * 60);
+            response.addCookie(cookie);
+            LocalDateTime expiry = LocalDateTime.now().plusDays(7);
+            Token newToken = Token.builder()
+                    .refreshToken(refreshToken)
+                    .expiryDate(expiry)
+                    .user(user)
+                    .build();
+            tokenRepository.save(newToken);
+        }
+        return AuthResponse.builder()
+                .access_token(jwtUtils.generateToken(user))
+                .email(user.getEmail())
+                .build();
+    }
+
+    @Override
+    public User register(RegisterRequest request) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+        if (request.getPhoneNumber() != null && userRepository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
+            throw new IllegalArgumentException("Phone number already exists!");
+        }
+        Optional<User> existEmail = userRepository.findByEmail(request.getEmail());
+        if (existEmail.isPresent()) {
+            throw new IllegalArgumentException("Email is already registered");
+        }
+        Role role = roleRepository.findByName(RoleEnum.USER);
+        User user = User
+                .builder()
+                .email(request.getEmail())
+                .fullName(request.getFullName())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .birthDay(request.getBirthdate())
+                .phoneNumber(request.getPhoneNumber())
+                .gender(request.getGender())
+                .createdAt(LocalDateTime.now())
+                .lastActiveDate(LocalDate.now())
+                .role(role)
+                .build();
+        return userRepository.save(user);
+    }
+}
