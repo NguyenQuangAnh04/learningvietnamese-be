@@ -20,20 +20,25 @@ public class Game {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private String title;
-
-    private String type; // MC, FILL_BLANK, ...
-
+//
+//    private String title;
+//
+//    private String type; // MC, FILL_BLANK, ...
+//    private String description;
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
-
+    @ManyToOne
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
     @OneToMany(mappedBy = "game", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<MultipleChoiceQuestion> multipleChoiceQuestions;
 
-    @OneToMany(mappedBy = "game", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private List<FillBlankQuestion> fillBlankQuestions;
+
+
+    @ManyToOne
+    @JoinColumn(name = "game_type_id")
+    private GameType gameType;
+
 }

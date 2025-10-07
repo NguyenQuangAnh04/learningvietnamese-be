@@ -1,13 +1,20 @@
 package com.example.vietjapaneselearning.repository;
 
-import com.example.vietjapaneselearning.model.MultipleChoiceQuestion;
-import com.example.vietjapaneselearning.model.Topic;
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.List;
-import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.example.vietjapaneselearning.model.MultipleChoiceQuestion;
 
 public interface MultipleChoiceGameQuestionRepository extends JpaRepository<MultipleChoiceQuestion, Long> {
-    long countByGameId(Long gameId);
-    List<MultipleChoiceQuestion> findByTopic(Topic topic);
+    long countByGameIdAndLessonId(Long gameId, Long lessonId);
+
+    // List<MultipleChoiceQuestion> findByTopic(Topic topic);
+    // List<MultipleChoiceQuestion> findByGameIdAndLessonId(Long gameId, Long
+    // lessonId);
+    @Query("SELECT m FROM MultipleChoiceQuestion m where m.lesson.id = :lessonId AND m.game.id = :game_id")
+    List<MultipleChoiceQuestion> findByLessonIdAndGameId(@Param("lessonId") Long lessonId,
+            @Param("game_id") Long game_id);
 }

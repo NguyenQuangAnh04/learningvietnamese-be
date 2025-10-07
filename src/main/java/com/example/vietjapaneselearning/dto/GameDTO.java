@@ -5,20 +5,20 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class TopicDTO {
+public class GameDTO {
     private Long id;
-    private String name;
-    private Long gameId;
-    private Long score;
-    private Long questionId;
-    private LocalDateTime createdAt;
+    private String title;
+    private Long gameTypeId;
     private String description;
-    private boolean completed;
-    private String typeGame;
+    private String titleLesson;
+    private String type;
+    private Long lessonId;
+    private List<QuestionDTO> questions;
+    private Long gameCount;
 }

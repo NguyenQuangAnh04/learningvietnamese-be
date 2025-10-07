@@ -2,12 +2,20 @@ package com.example.vietjapaneselearning.controller;
 
 import com.example.vietjapaneselearning.dto.AnswerDTO;
 import com.example.vietjapaneselearning.dto.AnswerResultDTO;
+import com.example.vietjapaneselearning.dto.GameDTO;
 import com.example.vietjapaneselearning.dto.QuestionDTO;
 import com.example.vietjapaneselearning.dto.response.StartGameResponse;
 import com.example.vietjapaneselearning.service.IGameService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/game")
@@ -16,7 +24,7 @@ public class GameController {
     private IGameService gameService;
 
     @PostMapping("/add_question/{topicId}")
-    public ResponseEntity<QuestionDTO> addQuestion(@RequestBody QuestionDTO questionDTO, @PathVariable(name = "topicId") Long topicId) {
+    public ResponseEntity<List<QuestionDTO>> addQuestion(@RequestBody List<QuestionDTO> questionDTO, @PathVariable(name = "topicId") Long topicId) {
         return ResponseEntity.ok(gameService.addQuestion(questionDTO, topicId));
     }
 
@@ -26,12 +34,27 @@ public class GameController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/{gameId}/topics/{topicId}/start")
+    @PostMapping("/{typeGame}/start/{lessonId}")
     public ResponseEntity<StartGameResponse> startGame(
-            @PathVariable Long gameId,
-            @PathVariable Long topicId
+            @PathVariable String typeGame,
+            @PathVariable Long lessonId
     ) {
-        StartGameResponse response = gameService.startGame(gameId, topicId);
+        StartGameResponse response = gameService.startGame(typeGame, lessonId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("")
+    public ResponseEntity<Map<String, Object>> findByLessonId(@RequestParam(value = "lessonId", required = false) Long lessonId, @RequestParam(value = "page", defaultValue = "0", required = false) int page) {
+        PageRequest pageRequest = PageRequest.of(page, 10);
+        Page<GameDTO> dtoPage = gameService.findGameByLessonId(lessonId, pageRequest);
+        Map<String, Object> map = new HashMap<>();
+        map.put("games", dtoPage.getContent());
+        map.put("totalPage", dtoPage.getTotalPages());
+        return ResponseEntity.ok(map);
+    }
+
+    @GetMapping("/detail/{lessonId}/{gameId}")
+    public ResponseEntity<List<QuestionDTO>> findDetailsGame(@PathVariable Long lessonId, @PathVariable Long gameId) {
+        return ResponseEntity.ok(gameService.findQuestionByLessonIdAndGameId(lessonId, gameId));
     }
 }

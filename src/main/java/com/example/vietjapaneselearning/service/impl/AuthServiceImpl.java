@@ -14,6 +14,7 @@ import com.example.vietjapaneselearning.security.JwtUtils;
 import com.example.vietjapaneselearning.service.IAuthService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -40,7 +41,7 @@ public class AuthServiceImpl implements IAuthService {
 
 
     @Override
-    public AuthResponse login(AuthRequest request, HttpServletResponse response) {
+    public AuthResponse login(AuthRequest request, HttpServletRequest servletRequest, HttpServletResponse response) {
         User user = userRepository.findByEmail(request.getEmail()).orElseThrow(
                 () -> new EntityNotFoundException("Account does not register!")
         );
@@ -49,11 +50,21 @@ public class AuthServiceImpl implements IAuthService {
             throw new RuntimeException("Check password or email");
         }
 
-        Optional<Token> token = tokenRepository.findByUser(user);
         String refreshToken = null;
-        if (token.isPresent() && token.get().getExpiryDate().isAfter(LocalDateTime.now())) {
-            refreshToken = token.get().getRefreshToken();
-            long secondsLeft = Duration.between(LocalDateTime.now(), token.get().getExpiryDate()).getSeconds();
+        if (servletRequest.getCookies() != null) {
+            for (Cookie cookie : servletRequest.getCookies()) {
+                if ("refresh_token".equals(cookie.getName())) {
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        Optional<Token> existingToken = (refreshToken != null) ? tokenRepository.findRefreshToken(refreshToken) : Optional.empty();
+
+        if (existingToken.isPresent() && existingToken.get().getExpiryDate().isAfter(LocalDateTime.now())) {
+            Token token = existingToken.get();
+            refreshToken = token.getRefreshToken();
+            long secondsLeft = Duration.between(LocalDateTime.now(), token.getExpiryDate()).getSeconds();
             Cookie cookie = new Cookie("refresh_token", refreshToken);
             cookie.setHttpOnly(true);
             cookie.setPath("/");

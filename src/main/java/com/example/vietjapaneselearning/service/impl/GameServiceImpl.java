@@ -1,207 +1,401 @@
 package com.example.vietjapaneselearning.service.impl;
 
-import com.example.vietjapaneselearning.dto.AnswerDTO;
-import com.example.vietjapaneselearning.dto.AnswerResultDTO;
-import com.example.vietjapaneselearning.dto.OptionDTO;
-import com.example.vietjapaneselearning.dto.QuestionDTO;
-import com.example.vietjapaneselearning.dto.response.StartGameResponse;
-import com.example.vietjapaneselearning.model.*;
-import com.example.vietjapaneselearning.repository.*;
-import com.example.vietjapaneselearning.service.IGameService;
-import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import com.example.vietjapaneselearning.dto.AnswerDTO;
+import com.example.vietjapaneselearning.dto.AnswerResultDTO;
+import com.example.vietjapaneselearning.dto.GameDTO;
+import com.example.vietjapaneselearning.dto.OptionDTO;
+import com.example.vietjapaneselearning.dto.QuestionDTO;
+import com.example.vietjapaneselearning.dto.response.StartGameResponse;
+import com.example.vietjapaneselearning.model.ArrangeSentence;
+import com.example.vietjapaneselearning.model.Game;
+import com.example.vietjapaneselearning.model.GameType;
+import com.example.vietjapaneselearning.model.Lesson;
+import com.example.vietjapaneselearning.model.MultipleChoiceQuestion;
+import com.example.vietjapaneselearning.model.Option;
+import com.example.vietjapaneselearning.model.PlayerAnswer;
+import com.example.vietjapaneselearning.model.PlayerGame;
+import com.example.vietjapaneselearning.repository.ArrangeSentenceRepository;
+import com.example.vietjapaneselearning.repository.GameRepository;
+import com.example.vietjapaneselearning.repository.GameTypeRepository;
+import com.example.vietjapaneselearning.repository.LessonRepository;
+import com.example.vietjapaneselearning.repository.MultipleChoiceGameQuestionRepository;
+import com.example.vietjapaneselearning.repository.OptionRepository;
+import com.example.vietjapaneselearning.repository.PlayerAnswerRepository;
+import com.example.vietjapaneselearning.repository.PlayerGameRepository;
+import com.example.vietjapaneselearning.service.IGameService;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 public class GameServiceImpl implements IGameService {
-    @Autowired
-    private GameRepository gameRepository;
-    @Autowired
-    private MultipleChoiceGameQuestionRepository multipleChoiceGameQuestionRepository;
-    @Autowired
-    private FillBlankQuestionRepository fillBlankQuestionRepository;
-    @Autowired
-    private OptionRepository optionRepository;
-    @Autowired
-    private PlayerAnswerRepository playerAnswerRepository;
-    @Autowired
-    private CurrentUserService currentUserService;
-    @Autowired
-    private PlayerGameRepository playerGameRepository;
-    @Autowired
-    private TopicRepository topicRepository;
+        @Autowired
+        private GameRepository gameRepository;
+        @Autowired
+        private MultipleChoiceGameQuestionRepository multipleChoiceGameQuestionRepository;
 
-    @Override
-    public QuestionDTO addQuestion(QuestionDTO dto, Long topicId) {
-        Topic topic = topicRepository.findById(topicId)
-                .orElseThrow(() -> new EntityNotFoundException("Not fount topic with id: " + topicId));
-        Game game = gameRepository.findById(dto.getGameId())
-                .orElseThrow(() -> new EntityNotFoundException("Not found with game id " + dto.getGameId()));
-        if (dto.getType().equals("MC")) {
-            MultipleChoiceQuestion mc = MultipleChoiceQuestion.builder()
-                    .questionText(dto.getQuestionText())
-                    .explanation(dto.getExplanation())
-                    .image_url(dto.getImage_url())
-                    .topic(topic)
-                    .game(game)
-                    .build();
-            mc = multipleChoiceGameQuestionRepository.save(mc);
-            if (!dto.getOptions().isEmpty()) {
-                MultipleChoiceQuestion multipleChoiceQuestion = mc;
-                List<Option> options = dto.getOptions().stream()
-                        .map(opt -> Option.builder()
-                                .question(multipleChoiceQuestion)
-                                .text(opt.getContent())
-                                .isCorrect(opt.isCorrect())
-                                .build())
-                        .toList();
-                optionRepository.saveAll(options);
-            }
-        } else if (dto.getType().equals("FB")) {
-            FillBlankQuestion fb = FillBlankQuestion.builder()
-                    .game(game)
-                    .correctAnswer(dto.getAnswerText())
-                    .questionText(dto.getQuestionText())
-                    .explanation(dto.getExplanation())
-                    .build();
-            fillBlankQuestionRepository.save(fb);
-        }
-        return dto;
-    }
+        @Autowired
+        private OptionRepository optionRepository;
+        @Autowired
+        private PlayerAnswerRepository playerAnswerRepository;
+        @Autowired
+        private CurrentUserService currentUserService;
+        @Autowired
+        private PlayerGameRepository playerGameRepository;
 
-    @Override
-    public AnswerResultDTO submitAnswer(AnswerDTO answerDTO) {
-        int point = 10;
-        AnswerResultDTO result;
-        if (answerDTO.getGameId() == 1) { // Multiple Choice
-            MultipleChoiceQuestion mc = multipleChoiceGameQuestionRepository.findById(answerDTO.getQuestionId())
-                    .orElseThrow(() -> new EntityNotFoundException("Not found id question " + answerDTO.getGameId()));
-            List<Option> options = optionRepository.findAllByQuestionId(mc.getId());
+        @Autowired
+        private LessonRepository lessonRepository;
+        private static final int DEFAULT_POINT = 10;
+        @Autowired
+        private ArrangeSentenceRepository arrangeSentenceRepository;
+        @Autowired
+        private GameTypeRepository gameTypeRepository;
 
-            boolean correct = options.stream()
-                    .anyMatch(opt -> opt.isCorrect() && opt.getId().equals(answerDTO.getOptionId()));
+        @Override
+        public List<QuestionDTO> addQuestion(List<QuestionDTO> dto, Long lessonId) {
+                Lesson lesson = lessonRepository.findById(lessonId)
+                                .orElseThrow(() -> new EntityNotFoundException("Not fount topic with id: " + lessonId));
+                Long gameId = dto.get(0).getGameId();
 
-            PlayerAnswer playerAnswer = PlayerAnswer.builder()
-                    .userAnswer(String.valueOf(answerDTO.getOptionId()))
-                    .questionId(answerDTO.getQuestionId())
-                    .gameId(answerDTO.getGameId())
-                    .user(currentUserService.getUserCurrent())
-                    .isCorrect(correct)
-                    .answeredAt(LocalDateTime.now())
-                    .point(correct ? point : 0)
-                    .build();
-            playerAnswerRepository.save(playerAnswer);
-
-            result = AnswerResultDTO.builder()
-                    .correct(correct)
-                    .explanation(mc.getExplanation())
-                    .options(options)
-                    .build();
-
-        } else if (answerDTO.getGameId() == 2) { // Fill in Blank
-            FillBlankQuestion fb = fillBlankQuestionRepository.findById(answerDTO.getQuestionId())
-                    .orElseThrow(() -> new EntityNotFoundException("Not found id question " + answerDTO.getGameId()));
-
-            String[] correctAnswers = fb.getCorrectAnswer().split(";");
-            boolean correct = Arrays.stream(correctAnswers)
-                    .anyMatch(ans -> ans.trim().equalsIgnoreCase(answerDTO.getAnswer().trim()));
-
-            PlayerAnswer playerAnswer = PlayerAnswer.builder()
-                    .userAnswer(answerDTO.getAnswer())
-                    .questionId(answerDTO.getQuestionId())
-                    .gameId(answerDTO.getGameId())
-                    .user(currentUserService.getUserCurrent())
-                    .isCorrect(correct)
-                    .answeredAt(LocalDateTime.now())
-                    .point(correct ? point : 0)
-                    .build();
-            playerAnswerRepository.save(playerAnswer);
-
-            result = AnswerResultDTO.builder()
-                    .correct(correct)
-                    .explanation(fb.getExplanation())
-                    .build();
-
-        } else {
-            throw new RuntimeException("Unsupported gameId: " + answerDTO.getGameId());
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new EntityNotFoundException("Not found with game id " + gameId));
+                if (gameId == 1) {
+                        addMultipleChoiceQuestion(dto, lesson, game);
+                } else if (gameId == 3) {
+                        addMultipleChoiceQuestion(dto, lesson, game);
+                } else {
+                        addArrangeSentence(dto, lesson, game);
+                }
+                return dto;
         }
 
-        // Kiểm tra nếu user hoàn thành game
-        AnswerResultDTO completed = checkAndCompleteGame(answerDTO.getGameId());
-        if (completed != null) {
-            result.setTotalScore(completed.getTotalScore());
-            result.setWrongCount(completed.getWrongCount());
+        @Override
+        public AnswerResultDTO submitAnswer(AnswerDTO answerDTO) {
+
+                Game game = gameRepository.findById(answerDTO.getGameId())
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Not found game with id: " + answerDTO.getGameId()));
+
+                AnswerResultDTO result;
+
+                if ("MC".equals(game.getGameType().getType()) || "LS".equals(game.getGameType().getType())) {
+                        result = handleMultipleChoiceAnswer(answerDTO);
+                } else {
+                        result = handleArrangeSentence(answerDTO);
+                }
+
+                AnswerResultDTO completed = checkAndCompleteGame(game.getId(), answerDTO.getLessonId(),
+                                answerDTO.getPlayerId());
+                PlayerGame playerGame = playerGameRepository.findById(answerDTO.getPlayerId())
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Not found player with id: " + answerDTO.getPlayerId()));
+                int streak = playerGame.getCurrentStreak();
+                long totalQuestion = multipleChoiceGameQuestionRepository
+                                .countByGameIdAndLessonId(game.getId(), answerDTO.getLessonId());
+                Integer bonusPoint = 0;
+                if (streak == totalQuestion) {
+                        bonusPoint += 20;
+                }
+                if (completed != null) {
+                        result.setTotalScore(completed.getTotalScore() + bonusPoint);
+                        result.setComplete(true);
+                        result.setCurrentStreak(streak);
+                }
+
+                return result;
         }
 
-        return result;
-    }
+        private void addArrangeSentence(List<QuestionDTO> dto, Lesson lesson, Game game) {
+                List<ArrangeSentence> arrangeSentences = new ArrayList<>();
 
-    @Override
-    public StartGameResponse startGame(Long gameId, Long topicId) {
-        Game game = gameRepository.findById(gameId)
-                .orElseThrow(() -> new EntityNotFoundException("Not found game with id:" + gameId));
-        Topic topic = topicRepository.findById(topicId)
-                .orElseThrow(() -> new EntityNotFoundException("Not found topic with id: " + topicId));
-        PlayerGame playerGame = PlayerGame.builder()
-                .gameId(gameId)
-                .userId(currentUserService.getUserCurrent().getId())
-                .completed(false)
-                .totalScore(0)
-                .startAt(LocalDateTime.now())
-                .build();
-        playerGameRepository.save(playerGame);
-        List<QuestionDTO> questions = multipleChoiceGameQuestionRepository.findByTopic(topic)
-                .stream()
-                .map(q -> QuestionDTO.builder()
-                        .gameId(gameId)
-                        .questionText(q.getQuestionText())
-                        .image_url(q.getImage_url())
-                        .options(optionRepository.findAllByQuestionId(q.getId()).stream()
-                                .map(o -> new OptionDTO(o.getId(), o.getText()))
-                                .toList())
-                        .build()
-                ).toList();
-        return StartGameResponse.builder()
-                .gameId(gameId)
-                .playerGameId(playerGame.getId())
-                .topicId(topic.getId())
-                .questions(questions)
-                .startTime(playerGame.getStartAt())
-                .build();
-    }
-
-
-    private AnswerResultDTO checkAndCompleteGame(Long gameId) {
-        Long userId = currentUserService.getUserCurrent().getId();
-        int answeredCount = playerAnswerRepository.countByUserIdAndGameId(userId, gameId);
-        long totalQuestion = 0;
-        if (gameId == 1) {
-            totalQuestion = multipleChoiceGameQuestionRepository.countByGameId(gameId);
-        } else if (gameId == 2) {
-            totalQuestion = fillBlankQuestionRepository.countByGameId(gameId);
+                for (QuestionDTO questionDTO : dto) {
+                        ArrangeSentence arrangeSentence = ArrangeSentence.builder()
+                                        .sentence(questionDTO.getAnswerText())
+                                        .game(game)
+                                        .createdAt(LocalDateTime.now())
+                                        .lesson(lesson)
+                                        // .topic(topic)
+                                        .build();
+                        arrangeSentences.add(arrangeSentence);
+                }
+                arrangeSentenceRepository.saveAll(arrangeSentences);
         }
-        if (answeredCount >= totalQuestion) {
-            int totalScore = playerAnswerRepository.sumPointByUserIdAndGameId(userId, gameId);
-            int wrongCount = answeredCount - (totalScore / 10);
-            PlayerGame playerGame = PlayerGame
-                    .builder()
-                    .gameId(gameId)
-                    .totalScore(totalScore)
-                    .userId(userId)
-                    .completed(true)
-                    .completedAt(LocalDateTime.now())
-                    .build();
-            playerGameRepository.save(playerGame);
-            return AnswerResultDTO.builder()
-                    .totalScore(totalScore)
-                    .complete(true)
-                    .wrongCount(wrongCount)
-                    .build();
+
+        private void addMultipleChoiceQuestion(List<QuestionDTO> dto, Lesson lesson, Game game) {
+                List<MultipleChoiceQuestion> multipleChoiceQuestions = new ArrayList<>();
+                List<Option> ots = new ArrayList<>();
+                for (QuestionDTO questionDTO : dto) {
+                        MultipleChoiceQuestion mc = MultipleChoiceQuestion.builder()
+                                        .questionText(questionDTO.getQuestionText())
+                                        .explanation(questionDTO.getExplanation())
+                                        .image_url(questionDTO.getImage_url())
+                                        .lesson(lesson)
+                                        .game(game)
+                                        .build();
+                        multipleChoiceQuestions.add(mc);
+                        if (questionDTO.getOptions() != null) {
+                                List<Option> options = questionDTO.getOptions().stream()
+                                                .map(item -> Option.builder()
+                                                                .question(mc)
+                                                                .text(item.getContent())
+                                                                .isCorrect(item.isCorrect())
+                                                                .build())
+                                                .toList();
+                                ots.addAll(options);
+                        }
+                }
+                multipleChoiceGameQuestionRepository.saveAll(multipleChoiceQuestions);
+                optionRepository.saveAll(ots);
         }
-        return null;
-    }
+
+        private AnswerResultDTO handleMultipleChoiceAnswer(AnswerDTO answerDTO) {
+                MultipleChoiceQuestion mc = multipleChoiceGameQuestionRepository.findById(answerDTO.getQuestionId())
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Not found MC question " + answerDTO.getQuestionId()));
+
+                List<Option> options = optionRepository.findAllByQuestionId(mc.getId());
+                boolean correct = options.stream()
+                                .anyMatch(opt -> opt.isCorrect() && opt.getId().equals(answerDTO.getOptionId()));
+                Long correctOptionId = options.stream()
+                                .filter(Option::isCorrect)
+                                .map(Option::getId)
+                                .findFirst()
+                                .orElse(null);
+                PlayerGame playerGame = playerGameRepository.findById(answerDTO.getPlayerId())
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Not found player with id: " + answerDTO.getPlayerId()));
+                int streak = playerGame.getCurrentStreak();
+
+                if (correct) {
+                        playerGame.setCurrentStreak(streak + 1);
+                }
+                Lesson lesson = lessonRepository.findById(answerDTO.getLessonId())
+                                .orElseThrow(() -> new EntityNotFoundException(""));
+                PlayerAnswer playerAnswer = PlayerAnswer.builder()
+                                .questionId(answerDTO.getQuestionId())
+                                .gameId(answerDTO.getGameId())
+                                .playerGame(playerGame)
+                                .isCorrect(correct)
+                                .lesson(lesson)
+                                .userAnswer(answerDTO.getOptionId().toString())
+                                .answeredAt(LocalDateTime.now())
+                                .point(correct ? DEFAULT_POINT : 0)
+                                .build();
+                playerAnswerRepository.save(playerAnswer);
+                playerGame.setQuestionId(answerDTO.getQuestionId());
+                playerGameRepository.save(playerGame);
+                return AnswerResultDTO.builder()
+                                .correct(correct)
+                                .correctOptionId(correctOptionId)
+                                .explanation(mc.getExplanation())
+                                .build();
+        }
+
+        private AnswerResultDTO handleArrangeSentence(AnswerDTO answerDTO) {
+                ArrangeSentence arrangeSentence = arrangeSentenceRepository.findById(answerDTO.getQuestionId())
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Not found arrangeId" + answerDTO.getQuestionId()));
+                String word = String.join(" ", answerDTO.getAnswer());
+                PlayerGame playerGame = playerGameRepository.findById(answerDTO.getPlayerId())
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Not found player with id: " + answerDTO.getPlayerId()));
+                boolean correct = false;
+                if (word.equals(arrangeSentence.getSentence())) {
+                        correct = true;
+                }
+                int streak = playerGame.getCurrentStreak();
+
+                if (correct) {
+                        playerGame.setCurrentStreak(streak + 1);
+                }
+                Lesson lesson = lessonRepository.findById(answerDTO.getLessonId())
+                                .orElseThrow(() -> new EntityNotFoundException(""));
+                PlayerAnswer playerAnswer = PlayerAnswer.builder()
+                                .questionId(answerDTO.getQuestionId())
+                                .gameId(answerDTO.getGameId())
+                                .playerGame(playerGame)
+                                .isCorrect(correct)
+                                .lesson(lesson)
+                                .userAnswer(answerDTO.getAnswer().toString())
+                                .answeredAt(LocalDateTime.now())
+                                .point(correct ? DEFAULT_POINT : 0)
+                                .build();
+                playerAnswerRepository.save(playerAnswer);
+                playerGame.setQuestionId(answerDTO.getQuestionId());
+                playerGameRepository.save(playerGame);
+                return AnswerResultDTO.builder()
+                                .correct(correct)
+                                // .explanation(mc.getExplanation())
+                                .build();
+        }
+
+        @Override
+        public StartGameResponse startGame(String typeGame, Long lessonId) {
+                Long userId = currentUserService.getUserCurrent().getId();
+                String convertTypeGame = typeGame.replace("-", " ");
+                GameType gameType = gameTypeRepository.findByName(convertTypeGame);
+                Game game = gameRepository.findByLessonIdAndTypeGame(lessonId, gameType.getType());
+                if (game == null) {
+                        throw new EntityNotFoundException(
+                                        "Not found game with lesson id: " + lessonId + " and type game: " + typeGame);
+                }
+                Lesson lesson = lessonRepository.findById(lessonId)
+                                .orElseThrow(() -> new EntityNotFoundException("Not found topic with id: " + lessonId));
+                PlayerGame playerGame = playerGameRepository
+                                .findTopByUserIdAndGameIdAndLessonIdAndCompletedFalse(userId, game.getId(), lessonId)
+                                .orElseGet(() -> {
+                                        PlayerGame newGame = PlayerGame.builder()
+                                                        .gameId(game.getId())
+                                                        // .topicId(topicId)
+                                                        .lesson(lesson)
+                                                        .currentStreak(0)
+                                                        .userId(userId)
+                                                        .completed(false)
+                                                        .totalScore(0)
+                                                        .startAt(LocalDateTime.now())
+                                                        .build();
+                                        return playerGameRepository.save(newGame);
+                                });
+                List<QuestionDTO> questions = null;
+                // log.info("Game: {}", game);
+
+                if (gameType.getType().equals("MC") || gameType.getType().equals("LS")) {
+                        questions = multipleChoiceGameQuestionRepository
+                                        .findByLessonIdAndGameId(lessonId, game.getId())
+                                        .stream()
+                                        .map(q -> QuestionDTO.builder()
+                                                        .gameId(game.getId())
+                                                        .questionId(q.getId())
+                                                        .questionText(q.getQuestionText())
+                                                        .explanation(q.getExplanation())
+                                                        // .image_url(q.getImage_url())
+                                                        .options(optionRepository.findAllByQuestionId(q.getId())
+                                                                        .stream()
+                                                                        .map(o -> new OptionDTO(o.getId(), o.getText(),
+                                                                                        o.isCorrect()))
+                                                                        .toList())
+                                                        .build())
+                                        .toList();
+                } else if (gameType.getType().equals("AS")) {
+                        questions = arrangeSentenceRepository.findByLessonIdAndGameId(lesson.getId(), game.getId())
+                                        .stream()
+                                        .map(q -> QuestionDTO.builder()
+                                                        .gameId(q.getGame().getId())
+                                                        .questionId(q.getId())
+                                                        .sentence(Arrays.asList(q.getSentence().split(" ")))
+                                                        .build())
+                                        .toList();
+
+                }
+                return StartGameResponse.builder()
+                                .gameId(game.getId())
+                                .playerId(playerGame.getId())
+                                .lastQuestionId(playerGame.getQuestionId())
+                                // .topicId(topic.getId())
+                                // .type(topic.getGame().getType())
+                                .questions(questions)
+                                .startTime(playerGame.getStartAt())
+                                .build();
+        }
+
+        @Override
+        public Page<GameDTO> findGameByLessonId(Long lessonId, Pageable pageable) {
+                Page<Game> game = gameRepository.findByLessonId(lessonId, pageable);
+                Long gameCount = gameRepository.countGameByLesson(lessonId);
+                return game.map(
+                                it -> {
+                                        return GameDTO.builder()
+                                                        .id(it.getId())
+                                                        .titleLesson(it.getLesson().getTitle())
+                                                        .title(it.getGameType().getName())
+                                                        .gameTypeId(it.getGameType().getId())
+                                                        .gameCount(gameCount)
+                                                        .lessonId(it.getLesson().getId())
+                                                        .type(it.getGameType().getType())
+                                                        .description(it.getGameType().getDescription())
+                                                        .build();
+                                });
+        }
+
+        @Override
+        public List<QuestionDTO> findQuestionByLessonIdAndGameId(Long lessonId, Long gameId) {
+                GameType gameType = gameTypeRepository.findById(gameId)
+                                .orElseThrow(() -> new EntityNotFoundException("Not found topic with id: " + gameId));
+                Game game = gameRepository.findByLessonIdAndTypeGame(lessonId, gameType.getType());
+                if (gameType.getType().equals("MC") || gameType.getType().equals("LS")) {
+                        List<MultipleChoiceQuestion> list = multipleChoiceGameQuestionRepository
+                                        .findByLessonIdAndGameId(lessonId, game.getId());
+
+                        return list.stream().map(item -> {
+                                List<OptionDTO> options = item.getOptions().stream()
+                                                .map(option -> OptionDTO.builder()
+                                                                .id(option.getId())
+                                                                .content(option.getText())
+                                                                .correct(option.isCorrect())
+                                                                .build())
+                                                .toList();
+
+                                return QuestionDTO.builder()
+                                                .gameId(game.getId())
+                                                .lessonId(item.getLesson().getId())
+                                                .questionText(item.getQuestionText())
+                                                .explanation(item.getExplanation())
+                                                .options(options)
+                                                .questionId(item.getId())
+                                                .build();
+                        }).toList();
+                } else if (gameType.getType().equals("AS")) {
+                        List<ArrangeSentence> list = arrangeSentenceRepository.findByLessonIdAndGameId(lessonId,
+                                        game.getId());
+
+                        return list.stream().map(item -> {
+                                return QuestionDTO.builder()
+                                                .gameId(game.getId())
+                                                .sentence(Arrays.asList(item.getSentence().split(" ")))
+                                                .questionId(item.getId())
+                                                .lessonId(item.getLesson().getId())
+                                                .build();
+                        }).toList();
+                }
+
+                return List.of();
+        }
+
+        private AnswerResultDTO checkAndCompleteGame(Long gameId, Long lessonId, Long playerId) {
+                int answeredCount = playerAnswerRepository.countByPlayerIdAndTopicIdAndGameId(playerId, gameId);
+                long totalQuestion = 0;
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new EntityNotFoundException("Not found game with id: " + gameId));
+                if (game.getGameType().getType().equals("MC") || game.getGameType().getType().equals("LS")) {
+                        totalQuestion = multipleChoiceGameQuestionRepository.countByGameIdAndLessonId(gameId, lessonId);
+                } else {
+                        totalQuestion = arrangeSentenceRepository.countByGameIdAndLessonId(gameId, lessonId);
+                }
+                if (answeredCount >= totalQuestion) {
+                        int totalScore = playerAnswerRepository.sumPointByPlayerIdAndGameId(playerId, gameId);
+                        PlayerGame playerGame = playerGameRepository.findById(playerId)
+                                        .orElseThrow(() -> new EntityNotFoundException(
+                                                        "Not found player with id:" + playerId));
+                        playerGame.setCompleted(true);
+                        playerGame.setTotalScore(totalScore);
+                        playerGame.setCompletedAt(LocalDateTime.now());
+                        playerGameRepository.save(playerGame);
+                        return AnswerResultDTO.builder()
+                                        .totalScore(totalScore)
+                                        .complete(true)
+                                        .build();
+                }
+                return null;
+        }
 }

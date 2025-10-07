@@ -13,10 +13,14 @@ import java.util.List;
 @Builder
 public class QuestionDTO {
     private Long gameId;
+    private Long questionId;
     private String questionText;
     private String explanation;
+    private String audio_url;
     private String image_url;
+    private Long lessonId;
     private String type;
     private String answerText;
+    private List<String> sentence;
     private List<OptionDTO> options;
 }

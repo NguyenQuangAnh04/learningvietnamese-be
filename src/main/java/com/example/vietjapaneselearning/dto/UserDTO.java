@@ -20,4 +20,5 @@ public class UserDTO {
     private String avatar;
     private String newPassword;
     private String phoneNumber;
+    private String roleName;
 }

@@ -14,9 +14,12 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class StartGameResponse {
-    private Long playerGameId;
+    private Long id;
     private Long gameId;
+    private Long playerId;
+    private Long lastQuestionId;
     private LocalDateTime startTime;
     private List<QuestionDTO> questions;
+    private String type;
     private Long topicId;
 }

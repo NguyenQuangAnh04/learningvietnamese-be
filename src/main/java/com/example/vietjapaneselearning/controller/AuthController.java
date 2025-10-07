@@ -12,6 +12,7 @@ import com.example.vietjapaneselearning.service.IPasswordResetService;
 import com.example.vietjapaneselearning.service.impl.CurrentUserService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,8 +42,8 @@ import java.util.Optional;
     private IPasswordResetService passwordResetService;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest authRequest, HttpServletResponse response) {
-        return ResponseEntity.ok(authService.login(authRequest, response));
+    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest authRequest, HttpServletRequest servletRequest, HttpServletResponse response) {
+        return ResponseEntity.ok(authService.login(authRequest,servletRequest, response));
     }
 
     @PostMapping("/register")
@@ -117,5 +118,10 @@ import java.util.Optional;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to reset password");
         }
+    }
+
+    @GetMapping("/verify-token")
+    public ResponseEntity<?> verifyToken(@RequestHeader("Authorization") String authHeader) {
+        return ResponseEntity.ok().build();
     }
 }

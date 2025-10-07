@@ -19,12 +19,16 @@ public class PlayerAnswer {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
-
-    private Long questionId; // có thể là MC hoặc FillBlank
+    @ManyToOne
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
+    private Long questionId;
     private Long gameId;
-    private String userAnswer; // "A", "B", "Apple", ...
+    private String userAnswer;
     private int point;
     private boolean isCorrect;
-
+    @ManyToOne
+    @JoinColumn(name = "player_game_id")
+    private PlayerGame playerGame;
     private LocalDateTime answeredAt;
 }

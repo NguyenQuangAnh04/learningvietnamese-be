@@ -19,9 +19,14 @@ public class Topic {
     private Long id;
 
     private String name;
+    private String description;
     private LocalDateTime createAt;
 
     @ManyToOne
     @JoinColumn(name = "game_id")
     private Game game;
+
+    @ManyToOne
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
 }

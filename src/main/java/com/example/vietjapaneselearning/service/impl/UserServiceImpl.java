@@ -1,14 +1,18 @@
 package com.example.vietjapaneselearning.service.impl;
 
 import com.example.vietjapaneselearning.dto.UserDTO;
+import com.example.vietjapaneselearning.enums.RoleEnum;
 import com.example.vietjapaneselearning.model.User;
 import com.example.vietjapaneselearning.repository.UserRepository;
 import com.example.vietjapaneselearning.service.IUserService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -48,7 +52,7 @@ public class UserServiceImpl implements IUserService {
         if (!userDTO.getEmail().equals(existingUser.get().getEmail()) && userRepository.findByEmail(userDTO.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already exist in database!");
         }
-        if (userDTO.getPassword() != null &&  !bCryptPasswordEncoder.matches(userDTO.getPassword(), existingUser.get().getPassword())) {
+        if (userDTO.getPassword() != null && !bCryptPasswordEncoder.matches(userDTO.getPassword(), existingUser.get().getPassword())) {
             throw new IllegalArgumentException("Password does incorrect");
         }
         existingUser.get().setFullName(userDTO.getFullName());
@@ -60,5 +64,40 @@ public class UserServiceImpl implements IUserService {
             existingUser.get().setPassword(bCryptPasswordEncoder.encode(userDTO.getNewPassword()));
         }
         return userRepository.save(existingUser.get());
+    }
+
+    @Override
+    public Page<UserDTO> getUsers(String keyword, RoleEnum role, Pageable pageable) {
+        Page<User> userPage = userRepository.searchByKeywordAndRole(keyword, role, pageable);
+        return userPage.map(
+                item -> {
+                    return UserDTO.builder()
+                            .id(item.getId())
+                            .fullName(item.getFullName())
+                            .email(item.getEmail())
+                            .phoneNumber(item.getPhoneNumber())
+                            .gender(item.getGender())
+                            .birthdate(String.valueOf(item.getBirthDay()))
+                            .avatar(item.getAvatar())
+                            .roleName(item.getRole().getName().toString())
+                            .build();
+                }
+        );
+
+    }
+
+    @Override
+    public UserDTO addUser(UserDTO userDTO) {
+        User user = userRepository.findByEmail(userDTO.getEmail())
+                .orElseThrow(() -> new EntityNotFoundException("User with email " + userDTO.getEmail() + " not found"));
+        user = new User();
+        user.setPassword(bCryptPasswordEncoder.encode(userDTO.getPassword()));
+        user.setFullName(userDTO.getFullName());
+        user.setEmail(userDTO.getEmail());
+        user.setPhoneNumber(userDTO.getPhoneNumber());
+        user.setGender(userDTO.getGender());
+        user.setBirthDay(LocalDate.parse(userDTO.getBirthdate()));
+        userRepository.save(user);
+        return userDTO;
     }
 }

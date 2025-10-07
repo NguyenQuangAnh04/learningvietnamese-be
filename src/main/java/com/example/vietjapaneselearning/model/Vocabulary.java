@@ -23,7 +23,7 @@ public class Vocabulary {
 
     @Column(nullable = false, length = 500)
     private String meaning;
-
+    private String pronunciation;
     @ManyToOne
     @JoinColumn(name = "lesson_id", nullable = false)
     private Lesson lesson;

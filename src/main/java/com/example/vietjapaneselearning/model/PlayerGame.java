@@ -19,10 +19,15 @@ public class PlayerGame {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private LocalDateTime startAt;
-    private Long userId;       // ID người chơi
-    private Long gameId;       // ID game
-    private int attemptNumber;
-    private int totalScore;    // tổng điểm sau khi hoàn thành game
-    private boolean completed; // đánh dấu game đã hoàn thành
-    private LocalDateTime completedAt; // thời gian hoàn thành
+    private Long userId;
+//    private Long topicId;
+    @ManyToOne
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
+    private Long gameId;
+    private Long questionId;
+    private int totalScore;
+    private int currentStreak;
+    private boolean completed;
+    private LocalDateTime completedAt;
 }

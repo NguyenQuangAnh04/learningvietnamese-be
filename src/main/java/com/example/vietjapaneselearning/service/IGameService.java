@@ -1,12 +1,17 @@
 package com.example.vietjapaneselearning.service;
 
-import com.example.vietjapaneselearning.dto.AnswerDTO;
-import com.example.vietjapaneselearning.dto.AnswerResultDTO;
-import com.example.vietjapaneselearning.dto.QuestionDTO;
+import com.example.vietjapaneselearning.dto.*;
 import com.example.vietjapaneselearning.dto.response.StartGameResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 public interface IGameService {
-    QuestionDTO addQuestion(QuestionDTO dto, Long topicId);
+    List<QuestionDTO> addQuestion(List<QuestionDTO> dto, Long topicId);
     AnswerResultDTO submitAnswer(AnswerDTO answerDTO);
-    StartGameResponse startGame(Long gameId, Long topicId);
+    StartGameResponse startGame(String typeGame, Long lessonId);
+    Page<GameDTO> findGameByLessonId(Long lessonId, Pageable pageable);
+    List<QuestionDTO> findQuestionByLessonIdAndGameId(Long lessonId, Long gameId);
+//    List<GameDTO> findAll();
 }

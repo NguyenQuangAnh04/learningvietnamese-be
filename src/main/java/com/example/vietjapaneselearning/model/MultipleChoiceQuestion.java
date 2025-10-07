@@ -21,18 +21,18 @@ public class MultipleChoiceQuestion {
     private String image_url;
 
     private String explanation;
+    private String audioUrl;
 
     @ManyToOne
     @JoinColumn(name = "game_id")
     @JsonIgnore
-
     private Game game;
 
-    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<Option> options;
-
     @ManyToOne
-    @JoinColumn(name = "topic_id")
-    private Topic topic;
+    @JoinColumn(name = "lesson_Id")
+    private Lesson lesson;
 }
+

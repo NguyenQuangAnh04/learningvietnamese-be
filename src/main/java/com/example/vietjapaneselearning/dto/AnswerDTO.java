@@ -15,6 +15,8 @@ import java.util.List;
 public class AnswerDTO {
     private Long gameId;
     private Long questionId;
-    private String answer;
+    private Long playerId;
+    private Long lessonId;
+    private List<String> answer;
     private Long optionId;
 }

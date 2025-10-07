@@ -35,9 +35,16 @@ public class Lesson {
     private String content;
     @Column
     private LocalDateTime time;
+
+    @Column
+    private LocalDateTime created;
+    @Column
+    private LocalDateTime updated;
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Vocabulary> vocabularies;
 
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ExampleSentence> exampleSentences;
+
+
 }

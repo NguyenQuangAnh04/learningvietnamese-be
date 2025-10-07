@@ -13,4 +13,5 @@ public class VocabularyDTO {
     private Long id;
     private String word;
     private String meaning;
+    private String pronunciation;
 }
