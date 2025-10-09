@@ -3,6 +3,7 @@ package com.example.vietjapaneselearning.service.impl;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.poi.ss.usermodel.Cell;
@@ -62,6 +63,7 @@ public class QuestionServiceImpl implements IQuestionService {
                 .gameType(gameType)
                 .lesson(lesson)
                 .build();
+
         if (gameType.getType().equals("MC") || gameType.getType().equals("LS")) {
             for (QuestionDTO dto : questionDTO) {
                 MultipleChoiceQuestion multipleChoiceQuestion = new MultipleChoiceQuestion();
@@ -89,6 +91,7 @@ public class QuestionServiceImpl implements IQuestionService {
                 ArrangeSentence arrangeSentence = new ArrangeSentence();
                 arrangeSentence.setSentence(String.join(" ", dto.getSentence()));
                 arrangeSentence.setLesson(lesson);
+                gameRepository.save(game);
                 arrangeSentence.setGame(game);
                 arrangeSentenceRepository.save(arrangeSentence);
             }
@@ -99,9 +102,12 @@ public class QuestionServiceImpl implements IQuestionService {
 
     @Override
     public List<QuestionDTO> updateQuestion(Long gameId, Long lessonId, List<QuestionDTO> questions) {
-        if (gameId == 1 || gameId == 2) {
+        Game game = gameRepository.findById(gameId)
+                .orElseThrow(EntityNotFoundException::new);
+
+        if (game.getGameType().getType().equals("MC") || game.getGameType().getType().equals("LS")) {
             updateMultipleChoiceGameQuestion(gameId, lessonId, questions);
-        } else if (gameId == 3) {
+        } else  {
             updateArrangeSentence(gameId, lessonId, questions);
         }
 
@@ -113,11 +119,13 @@ public class QuestionServiceImpl implements IQuestionService {
         List<Option> options = new ArrayList<>();
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(EntityNotFoundException::new);
-        GameType gameType = gameTypeRepository.findById(gameId)
-                .orElseThrow(EntityNotFoundException::new);
-        Game game = gameRepository.findByLessonIdAndTypeGame(lesson.getId(), gameType.getType());
+//        GameType gameType = gameTypeRepository.findById(gameId)
+//                .orElseThrow(EntityNotFoundException::new);
+        Game game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new EntityNotFoundException("Game not found"));
         for (QuestionDTO questionDTO : questions) {
             MultipleChoiceQuestion multipleChoiceQuestion;
+            if(questionDTO.getQuestionText() == null || questionDTO.getQuestionText().isBlank()) continue;
             if (questionDTO.getQuestionId() != null && questionDTO.getQuestionId() != 0) {
                 multipleChoiceQuestion = multipleChoiceGameQuestionRepository.findById(questionDTO.getQuestionId())
                         .orElseThrow(() -> new EntityNotFoundException("Not found questionId"));
@@ -172,9 +180,10 @@ public class QuestionServiceImpl implements IQuestionService {
     private void updateArrangeSentence(Long gameId, Long lessonId, List<QuestionDTO> questions) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(EntityNotFoundException::new);
-        GameType gameType = gameTypeRepository.findById(gameId)
-                .orElseThrow(EntityNotFoundException::new);
-        Game game = gameRepository.findByLessonIdAndTypeGame(lesson.getId(), gameType.getType());
+//        GameType gameType = gameTypeRepository.findById(gameId)
+//                .orElseThrow(EntityNotFoundException::new);
+        Game game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new EntityNotFoundException("Game not found"));
         for (QuestionDTO questionDTO : questions) {
             if (questionDTO.getQuestionId() != null && questionDTO.getQuestionId() != 0) {
                 ArrangeSentence arrangeSentence = arrangeSentenceRepository.findById(questionDTO.getQuestionId())
@@ -227,11 +236,11 @@ public class QuestionServiceImpl implements IQuestionService {
         try (InputStream inputStream = file.getInputStream();
                 Workbook workbook = new XSSFWorkbook(inputStream)) {
             Sheet sheet = workbook.getSheetAt(0);
-
             for (Row row : sheet) {
                 QuestionDTO questionDTO = new QuestionDTO();
                 questionDTO.setQuestionText(getCellValue(row, 0));
-                questionDTO.setExplanation(getCellValue(row, 1));
+                questionDTO.setSentence(Collections.singletonList(getCellValue(row, 1)));
+                questionDTO.setExplanation(getCellValue(row, 2));
                 questions.add(questionDTO);
             }
         } catch (Exception e) {

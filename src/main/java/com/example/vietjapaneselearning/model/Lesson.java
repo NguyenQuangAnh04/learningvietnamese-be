@@ -44,7 +44,10 @@ public class Lesson {
     private List<Vocabulary> vocabularies;
 
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ExampleSentence> exampleSentences;
+    private List<PlayerAnswer> playerAnswers;
+    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PlayerGame> playerGames;
+
 
 
 }

@@ -23,7 +23,9 @@ public class PlayerAnswer {
     @JoinColumn(name = "lesson_id")
     private Lesson lesson;
     private Long questionId;
-    private Long gameId;
+    @ManyToOne()
+    @JoinColumn(name = "game_id")
+    private Game gameId;
     private String userAnswer;
     private int point;
     private boolean isCorrect;

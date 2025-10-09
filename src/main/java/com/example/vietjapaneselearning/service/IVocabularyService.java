@@ -12,4 +12,5 @@ public interface IVocabularyService {
     VocabularyDTO updateVocabulary(VocabularyDTO vocabularyDTO);
     List<VocabularyDTO> importExcel(MultipartFile file);
     List<VocabularyDTO> addVocabulary(List<VocabularyDTO> vocabularyDTO, Long lessonId);
+    void deleteVocabulary(Long id);
 }

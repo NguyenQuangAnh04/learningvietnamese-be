@@ -39,6 +39,7 @@ public class VocabularyServiceImpl implements IVocabularyService {
                             .word(item.getWord())
                             .meaning(item.getMeaning())
                             .pronunciation(item.getPronunciation())
+                            .lesson(item.getLesson().getTitle())
                             .build();
                 });
     }
@@ -97,5 +98,12 @@ public class VocabularyServiceImpl implements IVocabularyService {
         }
         vocabularyRepository.saveAll(vocabularyList);
         return vocabularyDTO;
+    }
+
+    @Override
+    public void deleteVocabulary(Long id) {
+        Vocabulary vocabulary = vocabularyRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Lesson Not Found"));
+        vocabularyRepository.delete(vocabulary);
     }
 }

@@ -22,6 +22,7 @@ public class AnswerResultDTO {
     private Integer totalScore;
     private Integer currentStreak;
     private Integer wrongCount;
-
+    private int newTotalScore;
+    private int bonus;
 
 }

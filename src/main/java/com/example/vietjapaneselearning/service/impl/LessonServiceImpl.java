@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.example.vietjapaneselearning.model.PlayerGame;
+import com.example.vietjapaneselearning.repository.*;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -20,10 +22,6 @@ import com.example.vietjapaneselearning.dto.VocabularyDTO;
 import com.example.vietjapaneselearning.model.Lesson;
 import com.example.vietjapaneselearning.model.UserLessonProgress;
 import com.example.vietjapaneselearning.model.Vocabulary;
-import com.example.vietjapaneselearning.repository.GameRepository;
-import com.example.vietjapaneselearning.repository.LessonRepository;
-import com.example.vietjapaneselearning.repository.UserLessonProgressRepository;
-import com.example.vietjapaneselearning.repository.VocabularyRepository;
 import com.example.vietjapaneselearning.service.ILessonService;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -40,9 +38,30 @@ public class LessonServiceImpl implements ILessonService {
     private VocabularyRepository vocabularyRepository;
     @Autowired
     private GameRepository gameRepository;
+    @Autowired
+    private PlayerGameRepository playerGameRepository;
 
     @Override
     public Page<LessonDTO> findAll(String title, String level, Pageable pageable) {
+        Page<Lesson> lessons = lessonRepository.findByTitleAndLevel(title, level.toLowerCase(), pageable);
+        return lessons.map(lesson -> {
+            Long gameCount = gameRepository.countGameByLesson(lesson.getId());
+            return LessonDTO.builder()
+                    .id(lesson.getId())
+                    .level(lesson.getLevel())
+                    .gameCount(gameCount)
+                    .title(lesson.getTitle())
+                    .time(lesson.getTime())
+                    .content(lesson.getContent())
+                    .created(lesson.getCreated())
+                    .updated(lesson.getUpdated())
+                    .describe(lesson.getContent())
+                    .build();
+        });
+    }
+
+    @Override
+    public Page<LessonDTO> findAllByUser(String title, String level, Pageable pageable) {
         Page<Lesson> lessons = lessonRepository.findByTitleAndLevel(title, level.toLowerCase(), pageable);
         return lessons.map(lesson -> {
             UserLessonProgress userLessonProgress = userLessonProgressRepository
@@ -55,6 +74,7 @@ public class LessonServiceImpl implements ILessonService {
                     .gameCount(gameCount)
                     .title(lesson.getTitle())
                     .time(lesson.getTime())
+                    .progress(progressLesson(lesson.getId()))
                     .content(lesson.getContent())
                     .created(lesson.getCreated())
                     .updated(lesson.getUpdated())
@@ -62,12 +82,19 @@ public class LessonServiceImpl implements ILessonService {
                     .status(userLessonProgressRepository
                             .findByUserIdAndLessonId(currentUserService.getUserCurrent().getId(),
                                     lesson.getId()) != null
-                                            ? userLessonProgress.getStatus()
-                                            : 0)
+                            ? userLessonProgress.getStatus()
+                            : 0)
                     .build();
         });
     }
-
+    private Long progressLesson(Long lessonId) {
+        Long playerGame = playerGameRepository.countCompletedGamesByLesson(currentUserService.getUserCurrent().getId(), lessonId);
+        double tmp = 33.3333333333;
+        if(playerGame > 0) {
+            return Math.round(tmp * playerGame);
+        }
+        return 0L;
+    }
     @Override
     public LessonDTO addLesson(LessonDTO lessonDTO) {
         if (lessonRepository.findByTitle(lessonDTO.getTitle()).isPresent()) {

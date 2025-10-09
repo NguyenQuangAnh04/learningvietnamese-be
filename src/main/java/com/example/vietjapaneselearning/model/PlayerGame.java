@@ -24,7 +24,9 @@ public class PlayerGame {
     @ManyToOne
     @JoinColumn(name = "lesson_id")
     private Lesson lesson;
-    private Long gameId;
+    @ManyToOne
+    @JoinColumn(name = "game_id")
+    private Game gameId;
     private Long questionId;
     private int totalScore;
     private int currentStreak;

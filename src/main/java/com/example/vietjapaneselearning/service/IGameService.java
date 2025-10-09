@@ -9,9 +9,15 @@ import java.util.List;
 
 public interface IGameService {
     List<QuestionDTO> addQuestion(List<QuestionDTO> dto, Long topicId);
+
     AnswerResultDTO submitAnswer(AnswerDTO answerDTO);
+
     StartGameResponse startGame(String typeGame, Long lessonId);
+
     Page<GameDTO> findGameByLessonId(Long lessonId, Pageable pageable);
+
     List<QuestionDTO> findQuestionByLessonIdAndGameId(Long lessonId, Long gameId);
+
+    void deleteGame(Long gameId);
 //    List<GameDTO> findAll();
 }

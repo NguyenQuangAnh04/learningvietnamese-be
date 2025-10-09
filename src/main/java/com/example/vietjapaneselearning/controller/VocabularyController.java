@@ -26,11 +26,10 @@ public class VocabularyController {
                                                              @RequestParam(required = false, defaultValue = "0") int page,
                                                              @RequestParam(required = false) Long lessonId
     ) {
-        Pageable pageable = PageRequest.of(page, 5, Sort.by(Sort.Direction.DESC, "id"));
+        Pageable pageable = PageRequest.of(page, 8, Sort.by(Sort.Direction.DESC, "id"));
         Map<String, Object> map = new HashMap<>();
         Page<VocabularyDTO> dtoPage = vocabularyService.getVocabulary(word, lessonId, pageable);
         map.put("vocabularies", dtoPage.getContent());
-//        map.put("totalItem", dtoPage.getTotalElements());
         map.put("totalPage", dtoPage.getTotalPages());
         return ResponseEntity.ok(map);
     }
@@ -48,5 +47,10 @@ public class VocabularyController {
     @PostMapping("/import")
     public ResponseEntity<List<VocabularyDTO>> importExcel(@RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(vocabularyService.importExcel(file));
+    }
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> deleteVocabulary(@PathVariable Long id) {
+        vocabularyService.deleteVocabulary(id);
+        return ResponseEntity.ok().build();
     }
 }

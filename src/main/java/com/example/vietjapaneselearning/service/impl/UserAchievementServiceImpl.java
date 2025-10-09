@@ -21,11 +21,14 @@ public class UserAchievementServiceImpl implements IUserAchievementService {
         User user = currentUserService.getUserCurrent();
         List<Long> totalScores = playerGameRepository.findMaxScoresByUser(user.getId());
         List<Long> totalGames = playerGameRepository.countGamesPlayed(user.getId());
+        List<Long> totalLessons = playerGameRepository.countLessonPlayed(user.getId());
+        Long totalLesson = totalLessons.stream().mapToLong(Long::longValue).sum();
         Long totalScore = totalScores.stream().mapToLong(Long::longValue).sum();
         Long totalGame =  totalGames.stream().mapToLong(Long::longValue).sum();
         return UserAchievementDTO.builder()
                 .totalScore(totalScore)
                 .totalGame(totalGame)
+                .totalLesson(totalLesson)
                 .build();
     }
 }

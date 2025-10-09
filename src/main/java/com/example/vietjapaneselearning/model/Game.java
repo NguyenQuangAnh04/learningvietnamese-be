@@ -31,14 +31,24 @@ public class Game {
     @ManyToOne
     @JoinColumn(name = "lesson_id")
     private Lesson lesson;
-    @OneToMany(mappedBy = "game", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "game", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<MultipleChoiceQuestion> multipleChoiceQuestions;
 
-
+    @OneToMany(mappedBy = "game", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<ArrangeSentence> arrangeSentences;
 
     @ManyToOne
     @JoinColumn(name = "game_type_id")
     private GameType gameType;
+
+    @OneToMany(mappedBy = "gameId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<PlayerGame>  playerGames;
+
+    @OneToMany(mappedBy = "gameId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<PlayerAnswer> playerAnswers;
 
 }

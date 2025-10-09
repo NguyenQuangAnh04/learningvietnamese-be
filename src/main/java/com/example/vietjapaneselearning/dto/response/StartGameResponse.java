@@ -22,4 +22,5 @@ public class StartGameResponse {
     private List<QuestionDTO> questions;
     private String type;
     private Long topicId;
+    private int score;
 }

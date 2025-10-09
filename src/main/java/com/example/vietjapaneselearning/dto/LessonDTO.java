@@ -25,5 +25,6 @@ public class LessonDTO {
     private String content;
     private LocalDateTime time;
     private List<VocabularyDTO> vocabularies;
+    private Long progress;
 
 }

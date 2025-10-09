@@ -29,7 +29,18 @@ public class LessonController {
         response.put("totalPage", lessonDTOPage.getTotalPages());
         return ResponseEntity.ok(response);
     }
-
+    @GetMapping("/findByUser")
+    public ResponseEntity<Map<String, Object>> findAllByUser(@RequestParam(name = "title", required = false) String title,
+                                                       @RequestParam(name = "level", required = false) String level,
+                                                       @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+                                                       @RequestParam(name = "size", required = false, defaultValue = "5") int size){
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by("id"));
+        Map<String, Object> response = new HashMap<>();
+        Page<LessonDTO> lessonDTOPage = lessonService.findAllByUser(title, level, pageRequest);
+        response.put("lesson", lessonDTOPage.getContent());
+        response.put("totalPage", lessonDTOPage.getTotalPages());
+        return ResponseEntity.ok(response);
+    }
     @PostMapping("/add_lesson")
     public ResponseEntity<LessonDTO> addLesson(@RequestBody LessonDTO lessonDTO){
         return ResponseEntity.ok(lessonService.addLesson(lessonDTO));

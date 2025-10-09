@@ -57,4 +57,10 @@ public class GameController {
     public ResponseEntity<List<QuestionDTO>> findDetailsGame(@PathVariable Long lessonId, @PathVariable Long gameId) {
         return ResponseEntity.ok(gameService.findQuestionByLessonIdAndGameId(lessonId, gameId));
     }
+
+    @DeleteMapping("/delete/{gameId}")
+    public ResponseEntity<Void> deleteGame(@PathVariable Long gameId) {
+        gameService.deleteGame(gameId);
+        return ResponseEntity.ok().build();
+    }
 }
