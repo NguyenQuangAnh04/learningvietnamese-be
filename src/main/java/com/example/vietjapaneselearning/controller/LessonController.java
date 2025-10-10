@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -22,7 +23,7 @@ public class LessonController {
                                                         @RequestParam(name = "level", required = false) String level,
                                                         @RequestParam(name = "page", required = false, defaultValue = "0") int page,
                                                        @RequestParam(name = "size", required = false, defaultValue = "5") int size){
-        PageRequest pageRequest = PageRequest.of(page, size, Sort.by("id"));
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC,"title"));
         Map<String, Object> response = new HashMap<>();
         Page<LessonDTO> lessonDTOPage = lessonService.findAll(title, level, pageRequest);
         response.put("lesson", lessonDTOPage.getContent());
@@ -60,5 +61,10 @@ public class LessonController {
     public ResponseEntity<?> deleteLesson(@PathVariable("id") Long id){
         lessonService.deleteLessonById(id);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/top-lesson")
+    public ResponseEntity<List<LessonDTO>> getTopLesson(){
+        return ResponseEntity.ok(lessonService.getTop10LessonCompleted());
     }
 }

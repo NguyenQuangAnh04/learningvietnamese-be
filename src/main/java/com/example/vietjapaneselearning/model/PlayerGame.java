@@ -19,7 +19,9 @@ public class PlayerGame {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private LocalDateTime startAt;
-    private Long userId;
+    @ManyToOne
+    @JoinColumn(name = "userId")
+    private User userId;
 //    private Long topicId;
     @ManyToOne
     @JoinColumn(name = "lesson_id")
@@ -27,6 +29,7 @@ public class PlayerGame {
     @ManyToOne
     @JoinColumn(name = "game_id")
     private Game gameId;
+    private LocalDateTime updatedAt;
     private Long questionId;
     private int totalScore;
     private int currentStreak;

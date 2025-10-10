@@ -21,7 +21,8 @@ public class MultipleChoiceQuestion {
     private String image_url;
 
     private String explanation;
-    private String audioUrl;
+
+    private boolean audioUrl;
 
     @ManyToOne
     @JoinColumn(name = "game_id")

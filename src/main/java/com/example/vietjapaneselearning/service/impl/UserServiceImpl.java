@@ -34,6 +34,10 @@ public class UserServiceImpl implements IUserService {
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())
                 .gender(user.getGender())
+                .location(user.getLocation())
+                .language(user.getLanguage())
+                .createdAt(user.getCreatedAt().toString())
+                .bio(user.getBio())
                 .birthdate(String.valueOf(user.getBirthDay()))
                 .avatar(user.getAvatar() != null ? user.getAvatar() : "Unknow")
                 .build();
@@ -59,6 +63,8 @@ public class UserServiceImpl implements IUserService {
         existingUser.get().setPhoneNumber(userDTO.getPhoneNumber());
         existingUser.get().setEmail(userDTO.getEmail());
         existingUser.get().setAvatar(userDTO.getAvatar());
+        existingUser.get().setLocation(userDTO.getLocation());
+        existingUser.get().setBio(userDTO.getBio());
         existingUser.get().setUpdatedAt(LocalDateTime.now());
         if (userDTO.getNewPassword() != null && !userDTO.getNewPassword().isBlank()) {
             existingUser.get().setPassword(bCryptPasswordEncoder.encode(userDTO.getNewPassword()));
@@ -79,25 +85,12 @@ public class UserServiceImpl implements IUserService {
                             .gender(item.getGender())
                             .birthdate(String.valueOf(item.getBirthDay()))
                             .avatar(item.getAvatar())
-                            .roleName(item.getRole().getName().toString())
+                            .roleName(RoleEnum.valueOf(item.getRole().getName().toString()))
                             .build();
                 }
         );
 
     }
 
-    @Override
-    public UserDTO addUser(UserDTO userDTO) {
-        User user = userRepository.findByEmail(userDTO.getEmail())
-                .orElseThrow(() -> new EntityNotFoundException("User with email " + userDTO.getEmail() + " not found"));
-        user = new User();
-        user.setPassword(bCryptPasswordEncoder.encode(userDTO.getPassword()));
-        user.setFullName(userDTO.getFullName());
-        user.setEmail(userDTO.getEmail());
-        user.setPhoneNumber(userDTO.getPhoneNumber());
-        user.setGender(userDTO.getGender());
-        user.setBirthDay(LocalDate.parse(userDTO.getBirthdate()));
-        userRepository.save(user);
-        return userDTO;
-    }
+
 }

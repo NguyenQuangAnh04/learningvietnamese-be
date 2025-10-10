@@ -16,7 +16,7 @@ public class QuestionDTO {
     private Long questionId;
     private String questionText;
     private String explanation;
-    private String audio_url;
+    private boolean audio_url;
     private String image_url;
     private Long lessonId;
     private String type;

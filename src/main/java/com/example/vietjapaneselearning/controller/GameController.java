@@ -1,9 +1,6 @@
 package com.example.vietjapaneselearning.controller;
 
-import com.example.vietjapaneselearning.dto.AnswerDTO;
-import com.example.vietjapaneselearning.dto.AnswerResultDTO;
-import com.example.vietjapaneselearning.dto.GameDTO;
-import com.example.vietjapaneselearning.dto.QuestionDTO;
+import com.example.vietjapaneselearning.dto.*;
 import com.example.vietjapaneselearning.dto.response.StartGameResponse;
 import com.example.vietjapaneselearning.service.IGameService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,5 +59,10 @@ public class GameController {
     public ResponseEntity<Void> deleteGame(@PathVariable Long gameId) {
         gameService.deleteGame(gameId);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/recent-activities")
+    public ResponseEntity<List<RecentActivityDTO>> recentActivities() {
+        return ResponseEntity.ok(gameService.getRecentActivities());
     }
 }

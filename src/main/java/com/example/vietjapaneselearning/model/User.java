@@ -38,7 +38,12 @@ public class User implements UserDetails {
 
     @Column(name = "phone_number")
     private String phoneNumber;
-
+    @Column
+    private String location;
+    @Column
+    private String bio;
+    @Column
+    private String language;
     @Column(name = "birth_day")
     private LocalDate birthDay;
     @Column(name = "created_at")
@@ -49,7 +54,8 @@ public class User implements UserDetails {
 
     @Column(name = "last_active_date")
     private LocalDate lastActiveDate;
-
+    @OneToMany(mappedBy = "userId")
+    private List<PlayerGame> playerGames;
     @ManyToOne()
     @JoinColumn(name = "role_id")
     @JsonIgnore

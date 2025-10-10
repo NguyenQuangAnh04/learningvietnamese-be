@@ -8,6 +8,8 @@ import org.springframework.data.repository.query.Param;
 
 import com.example.vietjapaneselearning.model.Game;
 
+import java.util.List;
+
 public interface GameRepository extends JpaRepository<Game, Long> {
     @Query("SELECT g from Game g where (:lessonId is null or g.lesson.id = :lessonId)")
     Page<Game> findByLessonId(@Param("lessonId") Long lessonId, Pageable pageable);
@@ -17,5 +19,6 @@ public interface GameRepository extends JpaRepository<Game, Long> {
 
     @Query("SELECT COUNT(g) FROM Game g WHERE g.lesson.id = :lessonId")
     Long countGameByLesson(@Param("lessonId") Long lessonId);
-
+    @Query("select g.gameType.type from Game g where g.lesson.id = :lessonId")
+    List<String> countGameTypeByLesson(@Param("lessonId") Long lessonId);
 }

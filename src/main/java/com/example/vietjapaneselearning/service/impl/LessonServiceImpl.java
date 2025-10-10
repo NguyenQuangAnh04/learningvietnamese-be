@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import com.example.vietjapaneselearning.dto.LessonDTO;
 import com.example.vietjapaneselearning.dto.VocabularyDTO;
 import com.example.vietjapaneselearning.model.Lesson;
-import com.example.vietjapaneselearning.model.UserLessonProgress;
 import com.example.vietjapaneselearning.model.Vocabulary;
 import com.example.vietjapaneselearning.service.ILessonService;
 
@@ -30,8 +29,7 @@ import jakarta.persistence.EntityNotFoundException;
 public class LessonServiceImpl implements ILessonService {
     @Autowired
     private LessonRepository lessonRepository;
-    @Autowired
-    private UserLessonProgressRepository userLessonProgressRepository;
+
     @Autowired
     private CurrentUserService currentUserService;
     @Autowired
@@ -40,17 +38,21 @@ public class LessonServiceImpl implements ILessonService {
     private GameRepository gameRepository;
     @Autowired
     private PlayerGameRepository playerGameRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     public Page<LessonDTO> findAll(String title, String level, Pageable pageable) {
         Page<Lesson> lessons = lessonRepository.findByTitleAndLevel(title, level.toLowerCase(), pageable);
         return lessons.map(lesson -> {
             Long gameCount = gameRepository.countGameByLesson(lesson.getId());
+            List<String> gameType = gameRepository.countGameTypeByLesson(lesson.getId());
             return LessonDTO.builder()
                     .id(lesson.getId())
                     .level(lesson.getLevel())
                     .gameCount(gameCount)
                     .title(lesson.getTitle())
+                    .typeGame(gameType)
                     .time(lesson.getTime())
                     .content(lesson.getContent())
                     .created(lesson.getCreated())
@@ -64,8 +66,8 @@ public class LessonServiceImpl implements ILessonService {
     public Page<LessonDTO> findAllByUser(String title, String level, Pageable pageable) {
         Page<Lesson> lessons = lessonRepository.findByTitleAndLevel(title, level.toLowerCase(), pageable);
         return lessons.map(lesson -> {
-            UserLessonProgress userLessonProgress = userLessonProgressRepository
-                    .findByUserIdAndLessonId(currentUserService.getUserCurrent().getId(), lesson.getId());
+//            UserLessonProgress userLessonProgress = userLessonProgressRepository
+//                    .findByUserIdAndLessonId(currentUserService.getUserCurrent().getId(), lesson.getId());
             Long gameCount = gameRepository.countGameByLesson(lesson.getId());
 
             return LessonDTO.builder()
@@ -78,12 +80,8 @@ public class LessonServiceImpl implements ILessonService {
                     .content(lesson.getContent())
                     .created(lesson.getCreated())
                     .updated(lesson.getUpdated())
-                    .describe(lesson.getContent())
-                    .status(userLessonProgressRepository
-                            .findByUserIdAndLessonId(currentUserService.getUserCurrent().getId(),
-                                    lesson.getId()) != null
-                            ? userLessonProgress.getStatus()
-                            : 0)
+                    .describe(lesson.getDescription())
+
                     .build();
         });
     }
@@ -171,28 +169,49 @@ public class LessonServiceImpl implements ILessonService {
         lessonRepository.delete(lesson);
     }
 
-    private void importVocabularyFromExcel(Long lessonId, String filePath) {
-        Lesson lesson = lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new EntityNotFoundException("Lesson with id " + lessonId + " not found!"));
-        List<Vocabulary> vocabularies = new ArrayList<>();
-        try (FileInputStream fileInputStream = new FileInputStream(filePath);
-                Workbook workbook = new XSSFWorkbook(fileInputStream)) {
-            Sheet sheet = workbook.getSheetAt(0);
-            boolean firstRow = true;
-            for (Row row : sheet) {
-                if (firstRow) {
-                    firstRow = false;
-                    continue;
-                }
-
-                String word = row.getCell(0).getStringCellValue();
-                String meaning = row.getCell(1).getStringCellValue();
-                String pronunciation = row.getCell(2).getStringCellValue();
-
-            }
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    @Override
+    public List<LessonDTO> getTop10LessonCompleted() {
+        List<Object[]> results = playerGameRepository.getTop10LessonCompleted();
+        Long totalUser = userRepository.totalUser();
+        List<LessonDTO> lessonDTOs = new ArrayList<>();
+        for(Object[] obj : results){
+            Long lessonId = (Long) obj[0];
+            Long completedCount =  (Long) obj[1];
+            Lesson lesson = lessonRepository.findById(lessonId)
+                    .orElseThrow(() -> new EntityNotFoundException("Lesson with id " + lessonId + " not found!"));
+            LessonDTO lessonDTO = LessonDTO.builder()
+                    .id(lessonId)
+                    .title(lesson.getTitle())
+                    .totalUser(totalUser)
+                    .countCompleted(completedCount)
+                    .build();
+            lessonDTOs.add(lessonDTO);
         }
+        return lessonDTOs;
     }
+
+//    private void importVocabularyFromExcel(Long lessonId, String filePath) {
+//        Lesson lesson = lessonRepository.findById(lessonId)
+//                .orElseThrow(() -> new EntityNotFoundException("Lesson with id " + lessonId + " not found!"));
+//        List<Vocabulary> vocabularies = new ArrayList<>();
+//        try (FileInputStream fileInputStream = new FileInputStream(filePath);
+//                Workbook workbook = new XSSFWorkbook(fileInputStream)) {
+//            Sheet sheet = workbook.getSheetAt(0);
+//            boolean firstRow = true;
+//            for (Row row : sheet) {
+//                if (firstRow) {
+//                    firstRow = false;
+//                    continue;
+//                }
+//
+//                String word = row.getCell(0).getStringCellValue();
+//                String meaning = row.getCell(1).getStringCellValue();
+//                String pronunciation = row.getCell(2).getStringCellValue();
+//
+//            }
+//
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
 }

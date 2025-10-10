@@ -31,6 +31,11 @@ public class RegisterRequest {
     @Pattern(regexp = "^(0[0-9]{9})$", message = "Phone number is not valid")
     @Size(min = 10, max = 11, message = "Phone number must be 10–11 digits")
     private String phoneNumber;
-
+    @NotNull
+    private String location;
+    @NotNull
+    private String language;
+    @NotNull
+    private String bio;
     private LocalDate birthdate;
 }

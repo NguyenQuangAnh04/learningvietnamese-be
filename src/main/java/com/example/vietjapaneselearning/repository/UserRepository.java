@@ -25,6 +25,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("role") RoleEnum role,
             Pageable pageable
     );
-
+    @Query("SELECT count(u.id) from User u ")
+    Long totalUser();
 
 }

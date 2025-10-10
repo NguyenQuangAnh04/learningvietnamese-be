@@ -1,5 +1,6 @@
 package com.example.vietjapaneselearning.service.impl;
 
+import com.example.vietjapaneselearning.dto.UserDTO;
 import com.example.vietjapaneselearning.dto.request.AuthRequest;
 import com.example.vietjapaneselearning.dto.request.RegisterRequest;
 import com.example.vietjapaneselearning.dto.response.AuthResponse;
@@ -87,7 +88,6 @@ public class AuthServiceImpl implements IAuthService {
         }
         return AuthResponse.builder()
                 .access_token(jwtUtils.generateToken(user))
-                .email(user.getEmail())
                 .build();
     }
 
@@ -112,10 +112,58 @@ public class AuthServiceImpl implements IAuthService {
                 .birthDay(request.getBirthdate())
                 .phoneNumber(request.getPhoneNumber())
                 .gender(request.getGender())
+                .language(request.getLanguage())
+                .location(request.getLocation())
+                .bio(request.getBio())
                 .createdAt(LocalDateTime.now())
                 .lastActiveDate(LocalDate.now())
                 .role(role)
                 .build();
         return userRepository.save(user);
+    }
+
+    @Override
+    public UserDTO addUser(UserDTO userDTO) {
+        Optional<User> existingUser = userRepository.findByEmail(userDTO.getEmail());
+        if (existingUser.isPresent()) {
+            throw new IllegalArgumentException("Email is already registered");
+        }
+
+        Role role = roleRepository.findByName(userDTO.getRoleName());
+
+        User newUser = new User();
+        newUser.setRole(role);
+        newUser.setFullName(userDTO.getFullName());
+        newUser.setEmail(userDTO.getEmail());
+        newUser.setPhoneNumber(userDTO.getPhoneNumber());
+        newUser.setGender(userDTO.getGender());
+        newUser.setPassword(passwordEncoder.encode("12345678"));
+        newUser.setBirthDay(LocalDate.parse(userDTO.getBirthdate()));
+        newUser.setCreatedAt(LocalDateTime.now());
+        newUser.setLastActiveDate(LocalDate.now());
+
+        userRepository.save(newUser);
+
+        return userDTO;
+    }
+
+
+    @Override
+    public void updateRole(Long userId, RoleEnum roleName) {
+        Role role = roleRepository.findByName(roleName);
+        Optional<User> existingUser = userRepository.findById(userId);
+        if (existingUser.isPresent()) {
+            existingUser.get().setRole(role);
+        }
+        userRepository.save(existingUser.get());
+    }
+
+    @Override
+    public void deleteUser(Long userId) {
+        Optional<User> existingUser = userRepository.findById(userId);
+        if(existingUser.isEmpty()){
+            throw new IllegalArgumentException("User not found");
+        }
+        userRepository.delete(existingUser.get());
     }
 }

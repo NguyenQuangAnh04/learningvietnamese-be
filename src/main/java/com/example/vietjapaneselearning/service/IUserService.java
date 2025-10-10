@@ -11,5 +11,4 @@ public interface IUserService {
     User editProfileUser(UserDTO userDTO);
     Page<UserDTO> getUsers(String nameOrEmail, RoleEnum role, Pageable pageable);
 
-    UserDTO addUser(UserDTO userDTO);
 }

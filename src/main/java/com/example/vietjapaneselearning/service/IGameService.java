@@ -17,7 +17,7 @@ public interface IGameService {
     Page<GameDTO> findGameByLessonId(Long lessonId, Pageable pageable);
 
     List<QuestionDTO> findQuestionByLessonIdAndGameId(Long lessonId, Long gameId);
-
+    List<RecentActivityDTO> getRecentActivities();
     void deleteGame(Long gameId);
 //    List<GameDTO> findAll();
 }

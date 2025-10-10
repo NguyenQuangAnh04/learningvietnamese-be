@@ -1,8 +1,10 @@
 package com.example.vietjapaneselearning.controller;
 
+import com.example.vietjapaneselearning.dto.UserDTO;
 import com.example.vietjapaneselearning.dto.request.AuthRequest;
 import com.example.vietjapaneselearning.dto.request.RegisterRequest;
 import com.example.vietjapaneselearning.dto.response.AuthResponse;
+import com.example.vietjapaneselearning.enums.RoleEnum;
 import com.example.vietjapaneselearning.model.Token;
 import com.example.vietjapaneselearning.model.User;
 import com.example.vietjapaneselearning.repository.TokenRepository;
@@ -20,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -54,13 +57,12 @@ import java.util.Optional;
     @DeleteMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletResponse response) {
         Cookie cookie = new Cookie("refresh_token", null);
-        Token token = tokenRepository.findByUser(currentUserService.getUserCurrent())
-                .orElseThrow(() -> new EntityNotFoundException("Not found"));
+        List<Token> token = tokenRepository.findByUser(currentUserService.getUserCurrent());
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge(0);
         response.addCookie(cookie);
-        tokenRepository.delete(token);
+        tokenRepository.deleteAll(token);
         return ResponseEntity.noContent().build();
     }
 
@@ -123,5 +125,22 @@ import java.util.Optional;
     @GetMapping("/verify-token")
     public ResponseEntity<?> verifyToken(@RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/update-role/{userId}/{role}")
+    public ResponseEntity<?> updateRole(@PathVariable Long userId, @PathVariable RoleEnum role) {
+        authService.updateRole(userId, role);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/delete/{userId}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
+        authService.deleteUser(userId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/add")
+    public ResponseEntity<?> addUser(@RequestBody UserDTO userDTO) {
+        return ResponseEntity.ok(authService.addUser(userDTO));
     }
 }

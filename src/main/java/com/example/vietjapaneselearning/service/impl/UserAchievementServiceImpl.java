@@ -25,7 +25,7 @@ public class UserAchievementServiceImpl implements IUserAchievementService {
         Long totalLesson = totalLessons.stream().mapToLong(Long::longValue).sum();
         Long totalScore = totalScores.stream().mapToLong(Long::longValue).sum();
         Long totalGame =  totalGames.stream().mapToLong(Long::longValue).sum();
-        return UserAchievementDTO.builder()
+            return UserAchievementDTO.builder()
                 .totalScore(totalScore)
                 .totalGame(totalGame)
                 .totalLesson(totalLesson)

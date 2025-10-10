@@ -20,7 +20,7 @@ public class ArrangeSentence {
     private Long id;
 
     private String sentence;
-
+    private String description;
     //    @ManyToOne
 //    @JoinColumn(name = "topic_id")
 //    private Topic topic;

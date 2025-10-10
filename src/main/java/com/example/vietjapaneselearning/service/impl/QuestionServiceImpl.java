@@ -69,8 +69,8 @@ public class QuestionServiceImpl implements IQuestionService {
                 MultipleChoiceQuestion multipleChoiceQuestion = new MultipleChoiceQuestion();
                 multipleChoiceQuestion.setQuestionText(dto.getQuestionText());
                 multipleChoiceQuestion.setExplanation(dto.getExplanation());
-                if (dto.getAudio_url() != null && !dto.getAudio_url().isBlank()) {
-                    multipleChoiceQuestion.setAudioUrl(dto.getAudio_url());
+                if (game.getGameType().getType().equals("LS")) {
+                    multipleChoiceQuestion.setAudioUrl(true);
                 }
                 multipleChoiceQuestion.setLesson(lesson);
                 gameRepository.save(game);
@@ -90,6 +90,7 @@ public class QuestionServiceImpl implements IQuestionService {
             for (QuestionDTO dto : questionDTO) {
                 ArrangeSentence arrangeSentence = new ArrangeSentence();
                 arrangeSentence.setSentence(String.join(" ", dto.getSentence()));
+                arrangeSentence.setDescription(dto.getExplanation());
                 arrangeSentence.setLesson(lesson);
                 gameRepository.save(game);
                 arrangeSentence.setGame(game);
@@ -107,7 +108,7 @@ public class QuestionServiceImpl implements IQuestionService {
 
         if (game.getGameType().getType().equals("MC") || game.getGameType().getType().equals("LS")) {
             updateMultipleChoiceGameQuestion(gameId, lessonId, questions);
-        } else  {
+        } else {
             updateArrangeSentence(gameId, lessonId, questions);
         }
 
@@ -125,7 +126,7 @@ public class QuestionServiceImpl implements IQuestionService {
                 .orElseThrow(() -> new EntityNotFoundException("Game not found"));
         for (QuestionDTO questionDTO : questions) {
             MultipleChoiceQuestion multipleChoiceQuestion;
-            if(questionDTO.getQuestionText() == null || questionDTO.getQuestionText().isBlank()) continue;
+            if (questionDTO.getQuestionText() == null || questionDTO.getQuestionText().isBlank()) continue;
             if (questionDTO.getQuestionId() != null && questionDTO.getQuestionId() != 0) {
                 multipleChoiceQuestion = multipleChoiceGameQuestionRepository.findById(questionDTO.getQuestionId())
                         .orElseThrow(() -> new EntityNotFoundException("Not found questionId"));
@@ -135,9 +136,9 @@ public class QuestionServiceImpl implements IQuestionService {
                 if (questionDTO.getExplanation() != null && !questionDTO.getExplanation().isBlank()) {
                     multipleChoiceQuestion.setExplanation(questionDTO.getExplanation());
                 }
-                if (questionDTO.getAudio_url() != null && !questionDTO.getExplanation().isBlank()) {
-                    multipleChoiceQuestion.setAudioUrl(questionDTO.getAudio_url());
-                }
+//                if (questionDTO.getAudio_url() != null && !questionDTO.getExplanation().isBlank()) {
+//                    multipleChoiceQuestion.setAudioUrl(questionDTO.getAudio_url());
+//                }
                 if (questionDTO.getOptions() != null && !questionDTO.getOptions().isEmpty()) {
                     for (OptionDTO optionDTO : questionDTO.getOptions()) {
                         Option option = optionRepository.findById(optionDTO.getId())
@@ -153,9 +154,9 @@ public class QuestionServiceImpl implements IQuestionService {
                         .questionText(questionDTO.getQuestionText())
                         .explanation(questionDTO.getExplanation())
                         .lesson(lesson)
-                        .audioUrl(questionDTO.getAudio_url() != null && !questionDTO.getAudio_url().isBlank()
-                                ? questionDTO.getAudio_url()
-                                : null)
+//                        .audioUrl(questionDTO.getAudio_url() != null && !questionDTO.getAudio_url().isBlank()
+//                                ? questionDTO.getAudio_url()
+//                                : null)
                         .game(game)
                         .build();
                 multipleChoiceQuestions.add(multipleChoiceQuestion);
@@ -234,13 +235,14 @@ public class QuestionServiceImpl implements IQuestionService {
     public List<QuestionDTO> importExcelArrange(MultipartFile file) {
         List<QuestionDTO> questions = new ArrayList<>();
         try (InputStream inputStream = file.getInputStream();
-                Workbook workbook = new XSSFWorkbook(inputStream)) {
+             Workbook workbook = new XSSFWorkbook(inputStream)) {
             Sheet sheet = workbook.getSheetAt(0);
             for (Row row : sheet) {
                 QuestionDTO questionDTO = new QuestionDTO();
-                questionDTO.setQuestionText(getCellValue(row, 0));
-                questionDTO.setSentence(Collections.singletonList(getCellValue(row, 1)));
-                questionDTO.setExplanation(getCellValue(row, 2));
+                if(row.getRowNum() == 0){continue;}
+//                questionDTO.setQuestionText(getCellValue(row, 0));
+                questionDTO.setSentence(Collections.singletonList(getCellValue(row, 0)));
+                questionDTO.setExplanation(getCellValue(row, 1));
                 questions.add(questionDTO);
             }
         } catch (Exception e) {
@@ -252,7 +254,7 @@ public class QuestionServiceImpl implements IQuestionService {
     private List<QuestionDTO> importExcel(MultipartFile file, QuestionType type) {
         List<QuestionDTO> questions = new ArrayList<>();
         try (InputStream inp = file.getInputStream();
-                Workbook workbook = new XSSFWorkbook(inp);) {
+             Workbook workbook = new XSSFWorkbook(inp);) {
             Sheet sheet = workbook.getSheetAt(0);
             for (Row row : sheet) {
                 if (row.getRowNum() == 0)
@@ -264,8 +266,8 @@ public class QuestionServiceImpl implements IQuestionService {
                     case LISTEN_CHOICE -> {
                         questionDTO.setQuestionText(getCellValue(row, 0));
                         questionDTO.setExplanation(getCellValue(row, 1));
-                        questionDTO.setAudio_url(getCellValue(row, 2));
-                        populateOptions(row, options, 3, correct);
+//                        questionDTO.setAudio_url(getCellValue(row, 2));
+                        populateOptions(row, options, 2, correct);
                     }
                     case MULTIPLE_CHOICE -> {
                         questionDTO.setQuestionText(getCellValue(row, 0));
@@ -295,11 +297,14 @@ public class QuestionServiceImpl implements IQuestionService {
 
     private void populateOptions(Row row, List<OptionDTO> options, int startIndex, String correctOption) {
         for (int i = startIndex; i < row.getLastCellNum() - 1; i++) {
-            OptionDTO optionDTO = new OptionDTO();
-            optionDTO.setContent(getCellValue(row, i));
-            char optionChar = (char) ('A' + (i - 2));
-            optionDTO.setCorrect(correctOption.equalsIgnoreCase(String.valueOf(optionChar)));
-            options.add(optionDTO);
+            String cellValue = getCellValue(row, i);
+            if (cellValue != null && !cellValue.isEmpty()) {
+                OptionDTO optionDTO = new OptionDTO();
+                optionDTO.setContent(cellValue);
+                char optionChar = (char) ('A' + (i - startIndex));
+                optionDTO.setCorrect(correctOption.equalsIgnoreCase(String.valueOf(optionChar)));
+                options.add(optionDTO);
+            }
         }
     }
 

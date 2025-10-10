@@ -1,37 +1,21 @@
 package com.example.vietjapaneselearning.service.impl;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.example.vietjapaneselearning.dto.*;
+import com.example.vietjapaneselearning.model.*;
+import com.example.vietjapaneselearning.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import com.example.vietjapaneselearning.dto.AnswerDTO;
-import com.example.vietjapaneselearning.dto.AnswerResultDTO;
-import com.example.vietjapaneselearning.dto.GameDTO;
-import com.example.vietjapaneselearning.dto.OptionDTO;
-import com.example.vietjapaneselearning.dto.QuestionDTO;
 import com.example.vietjapaneselearning.dto.response.StartGameResponse;
-import com.example.vietjapaneselearning.model.ArrangeSentence;
-import com.example.vietjapaneselearning.model.Game;
-import com.example.vietjapaneselearning.model.GameType;
-import com.example.vietjapaneselearning.model.Lesson;
-import com.example.vietjapaneselearning.model.MultipleChoiceQuestion;
-import com.example.vietjapaneselearning.model.Option;
-import com.example.vietjapaneselearning.model.PlayerAnswer;
-import com.example.vietjapaneselearning.model.PlayerGame;
-import com.example.vietjapaneselearning.repository.ArrangeSentenceRepository;
-import com.example.vietjapaneselearning.repository.GameRepository;
-import com.example.vietjapaneselearning.repository.GameTypeRepository;
-import com.example.vietjapaneselearning.repository.LessonRepository;
-import com.example.vietjapaneselearning.repository.MultipleChoiceGameQuestionRepository;
-import com.example.vietjapaneselearning.repository.OptionRepository;
-import com.example.vietjapaneselearning.repository.PlayerAnswerRepository;
-import com.example.vietjapaneselearning.repository.PlayerGameRepository;
 import com.example.vietjapaneselearning.service.IGameService;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -61,6 +45,8 @@ public class GameServiceImpl implements IGameService {
     private ArrangeSentenceRepository arrangeSentenceRepository;
     @Autowired
     private GameTypeRepository gameTypeRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     public List<QuestionDTO> addQuestion(List<QuestionDTO> dto, Long lessonId) {
@@ -252,7 +238,7 @@ public class GameServiceImpl implements IGameService {
 
     @Override
     public StartGameResponse startGame(String typeGame, Long lessonId) {
-        Long userId = currentUserService.getUserCurrent().getId();
+        User userId = currentUserService.getUserCurrent();
         String convertTypeGame = typeGame.replace("-", " ");
         GameType gameType = gameTypeRepository.findByName(convertTypeGame);
         Game game = gameRepository.findByLessonIdAndTypeGame(lessonId, gameType.getType());
@@ -263,7 +249,7 @@ public class GameServiceImpl implements IGameService {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new EntityNotFoundException("Not found topic with id: " + lessonId));
         PlayerGame playerGame = playerGameRepository
-                .findTopByUserIdAndGameIdAndLessonIdAndCompletedFalse(userId, game.getId(), lessonId)
+                .findTopByUserIdAndGameIdAndLessonIdAndCompletedFalse(userId.getId(), game.getId(), lessonId)
                 .orElseGet(() -> {
                     PlayerGame newGame = PlayerGame.builder()
                             .gameId(game)
@@ -287,6 +273,7 @@ public class GameServiceImpl implements IGameService {
                     .map(q -> QuestionDTO.builder()
                             .gameId(game.getId())
                             .questionId(q.getId())
+                            .audio_url(q.isAudioUrl())
                             .questionText(q.getQuestionText())
                             .explanation(q.getExplanation())
                             // .image_url(q.getImage_url())
@@ -321,6 +308,7 @@ public class GameServiceImpl implements IGameService {
     public Page<GameDTO> findGameByLessonId(Long lessonId, Pageable pageable) {
         Page<Game> game = gameRepository.findByLessonId(lessonId, pageable);
         Long gameCount = gameRepository.countGameByLesson(lessonId);
+//        PlayerGame playerGame = playerGameRepository.find
         return game.map(
                 it -> {
                     return GameDTO.builder()
@@ -379,6 +367,36 @@ public class GameServiceImpl implements IGameService {
         }
 
         return List.of();
+    }
+
+    @Override
+    public List<RecentActivityDTO> getRecentActivities() {
+        List<PlayerGame> playerGames = playerGameRepository.findRecentGames(PageRequest.of(0, 6));
+        List<RecentActivityDTO> recentActivities = new ArrayList<>();
+        for(PlayerGame pg: playerGames){
+            Game game = gameRepository.findById(pg.getGameId().getId())
+                    .orElseThrow(() -> new EntityNotFoundException("Not found topic with id: " + pg.getId()));
+
+            User user = userRepository.findById(pg.getUserId().getId())
+                    .orElseThrow(() -> new EntityNotFoundException("Not found topic with id: " + pg.getUserId()));
+            String title = lessonRepository.findById(pg.getLesson().getId())
+                    .map(Lesson::getTitle)
+                    .orElse("");
+            long minutesAgo = Duration.between(pg.getStartAt(), LocalDateTime.now()).toMinutes();
+            String action = pg.isCompleted() ? "Completed" : "Started";
+            recentActivities.add(
+                    RecentActivityDTO
+                            .builder()
+                            .title(title)
+                            .typeGame(game.getGameType().getName())
+                            .action(action)
+                            .avatar(user.getAvatar() != null ? user.getAvatar() : "")
+                            .fullName(user.getFullName())
+                            .minutesAgo(minutesAgo)
+                            .build()
+            );
+        }
+        return recentActivities;
     }
 
     @Override

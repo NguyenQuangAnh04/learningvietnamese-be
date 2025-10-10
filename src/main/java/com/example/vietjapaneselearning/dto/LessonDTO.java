@@ -26,5 +26,8 @@ public class LessonDTO {
     private LocalDateTime time;
     private List<VocabularyDTO> vocabularies;
     private Long progress;
+    private Long countCompleted;
+    private List<String> typeGame;
+    private Long totalUser;
 
 }
