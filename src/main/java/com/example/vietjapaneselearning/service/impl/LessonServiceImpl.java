@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.example.vietjapaneselearning.model.Game;
 import com.example.vietjapaneselearning.model.PlayerGame;
 import com.example.vietjapaneselearning.repository.*;
 import org.apache.poi.ss.usermodel.Row;
@@ -87,7 +88,10 @@ public class LessonServiceImpl implements ILessonService {
     }
     private Long progressLesson(Long lessonId) {
         Long playerGame = playerGameRepository.countCompletedGamesByLesson(currentUserService.getUserCurrent().getId(), lessonId);
-        double tmp = 33.3333333333;
+        List<Game> game = gameRepository.findByLessonId(lessonId);
+
+//        double tmp = 33.3333333333;
+        double tmp = (double) 100 / game.size();
         if(playerGame > 0) {
             return Math.round(tmp * playerGame);
         }

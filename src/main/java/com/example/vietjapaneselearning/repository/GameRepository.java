@@ -21,4 +21,7 @@ public interface GameRepository extends JpaRepository<Game, Long> {
     Long countGameByLesson(@Param("lessonId") Long lessonId);
     @Query("select g.gameType.type from Game g where g.lesson.id = :lessonId")
     List<String> countGameTypeByLesson(@Param("lessonId") Long lessonId);
+    @Query("SELECT g from Game g where (:lessonId is null or g.lesson.id = :lessonId)")
+    List<Game> findByLessonId(@Param("lessonId") Long lessonId);
+
 }

@@ -35,7 +35,6 @@ public class RegisterRequest {
     private String location;
     @NotNull
     private String language;
-    @NotNull
     private String bio;
     private LocalDate birthdate;
 }
