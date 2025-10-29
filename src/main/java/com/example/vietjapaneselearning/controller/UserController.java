@@ -44,5 +44,14 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping("/translate-language")
+    public ResponseEntity<?> translateLanguage(@RequestParam(name = "language", required = false) String language) {
+        if(language == null){
+            return ResponseEntity.badRequest().build();
+        }
+        userService.translateLanguage(language);
+        return ResponseEntity.ok().build();
+    }
+
 
 }

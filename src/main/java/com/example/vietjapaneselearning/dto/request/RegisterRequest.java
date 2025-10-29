@@ -1,10 +1,7 @@
 package com.example.vietjapaneselearning.dto.request;
 
 import com.example.vietjapaneselearning.enums.Gender;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -31,10 +28,13 @@ public class RegisterRequest {
     @Pattern(regexp = "^(0[0-9]{9})$", message = "Phone number is not valid")
     @Size(min = 10, max = 11, message = "Phone number must be 10–11 digits")
     private String phoneNumber;
-    @NotNull
+    @NotNull(message = "Location is required")
     private String location;
-    @NotNull
+    @NotNull(message = "Language is required")
     private String language;
     private String bio;
+    @Past(message = "Birthdate must be in the past")
+    @NotNull(message = "Birthdate is required")
     private LocalDate birthdate;
+
 }

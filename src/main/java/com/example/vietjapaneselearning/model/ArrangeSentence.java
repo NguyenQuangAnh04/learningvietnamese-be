@@ -21,6 +21,7 @@ public class ArrangeSentence {
 
     private String sentence;
     private String description;
+    private String descriptionJa;
     //    @ManyToOne
 //    @JoinColumn(name = "topic_id")
 //    private Topic topic;

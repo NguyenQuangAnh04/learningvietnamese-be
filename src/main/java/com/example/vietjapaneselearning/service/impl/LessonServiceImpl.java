@@ -6,8 +6,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.example.vietjapaneselearning.model.Game;
-import com.example.vietjapaneselearning.model.PlayerGame;
+import com.example.vietjapaneselearning.model.*;
 import com.example.vietjapaneselearning.repository.*;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -20,8 +19,6 @@ import org.springframework.stereotype.Service;
 
 import com.example.vietjapaneselearning.dto.LessonDTO;
 import com.example.vietjapaneselearning.dto.VocabularyDTO;
-import com.example.vietjapaneselearning.model.Lesson;
-import com.example.vietjapaneselearning.model.Vocabulary;
 import com.example.vietjapaneselearning.service.ILessonService;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -66,37 +63,75 @@ public class LessonServiceImpl implements ILessonService {
     @Override
     public Page<LessonDTO> findAllByUser(String title, String level, Pageable pageable) {
         Page<Lesson> lessons = lessonRepository.findByTitleAndLevel(title, level.toLowerCase(), pageable);
-        return lessons.map(lesson -> {
-//            UserLessonProgress userLessonProgress = userLessonProgressRepository
-//                    .findByUserIdAndLessonId(currentUserService.getUserCurrent().getId(), lesson.getId());
-            Long gameCount = gameRepository.countGameByLesson(lesson.getId());
-
-            return LessonDTO.builder()
-                    .id(lesson.getId())
-                    .level(lesson.getLevel())
-                    .gameCount(gameCount)
-                    .title(lesson.getTitle())
-                    .time(lesson.getTime())
-                    .progress(progressLesson(lesson.getId()))
-                    .content(lesson.getContent())
-                    .created(lesson.getCreated())
-                    .updated(lesson.getUpdated())
-                    .describe(lesson.getDescription())
-
-                    .build();
-        });
+        User user = currentUserService.getUserCurrent();
+        String language = user.getLanguage();
+//        return lessons.map(lesson -> {
+////            UserLessonProgress userLessonProgress = userLessonProgressRepository
+////                    .findByUserIdAndLessonId(currentUserService.getUserCurrent().getId(), lesson.getId());
+//            Long gameCount = gameRepository.countGameByLesson(lesson.getId());
+//
+//            return LessonDTO.builder()
+//                    .id(lesson.getId())
+//                    .level(lesson.getLevel())
+//                    .gameCount(gameCount)
+//                    .title(lesson.getTitle())
+//                    .time(lesson.getTime())
+//                    .progress(progressLesson(lesson.getId()))
+//                    .content(lesson.getContent())
+//                    .created(lesson.getCreated())
+//                    .updated(lesson.getUpdated())
+//                    .describe(lesson.getDescription())
+//
+//                    .build();
+//        });
+        return lessons.map(lesson -> mapperLesson(lesson, language));
     }
+
+//    private LessonDTO translateLesson(String language) {
+//        if (language.equals("Japan")) {
+//
+//        }
+//    }
+
+    private LessonDTO mapperLesson(Lesson lesson, String language) {
+        LessonDTO lessonDTO = new LessonDTO();
+        Long gameCount = gameRepository.countGameByLesson(lesson.getId());
+
+        lessonDTO.setId(lesson.getId());
+        lessonDTO.setLevel(lesson.getLevel());
+        if (language.equals("Japan")) {
+            lessonDTO.setTitle(lesson.getTitleJa());
+            lessonDTO.setContent(lesson.getContentJa());
+            lessonDTO.setDescribe(lesson.getDescriptionJa());
+        }else if(language.equals("English")) {
+            lessonDTO.setTitle(lesson.getTitle());
+            lessonDTO.setContent(lesson.getContent());
+            lessonDTO.setDescribe(lesson.getDescription());
+        }else{
+            lessonDTO.setTitle(lesson.getTitle());
+            lessonDTO.setContent(lesson.getContent());
+            lessonDTO.setDescribe(lesson.getDescription());
+        }
+        lessonDTO.setProgress(progressLesson(lesson.getId()));
+        lessonDTO.setCreated(lesson.getCreated());
+        lessonDTO.setGameCount(gameCount);
+        lessonDTO.setUpdated(lesson.getUpdated());
+        return lessonDTO;
+
+    }
+
     private Long progressLesson(Long lessonId) {
         Long playerGame = playerGameRepository.countCompletedGamesByLesson(currentUserService.getUserCurrent().getId(), lessonId);
         List<Game> game = gameRepository.findByLessonId(lessonId);
 
 //        double tmp = 33.3333333333;
         double tmp = (double) 100 / game.size();
-        if(playerGame > 0) {
+        if (playerGame > 0) {
             return Math.round(tmp * playerGame);
         }
         return 0L;
     }
+
     @Override
     public LessonDTO addLesson(LessonDTO lessonDTO) {
         if (lessonRepository.findByTitle(lessonDTO.getTitle()).isPresent()) {
@@ -124,23 +159,26 @@ public class LessonServiceImpl implements ILessonService {
 
     @Override
     public LessonDTO findLessonByTitle(String title) {
+        User user = currentUserService.getUserCurrent();
+        String language = user.getLanguage();
         String newTitle = title.replace("-", " ");
         Lesson lesson = lessonRepository.findByTitle(newTitle)
-                .orElseThrow(() -> new EntityNotFoundException("Lesson with title " + newTitle + " not found!"));
+                .orElse(null);
+
         List<VocabularyDTO> vocabularies = lesson.getVocabularies().stream().map(item -> {
             return VocabularyDTO.builder()
                     .word(item.getWord())
-                    .meaning(item.getMeaning())
+                    .meaning(language.equals("Japan") ? item.getMeaningJa() : item.getMeaning())
                     .pronunciation(item.getPronunciation())
                     .build();
         }).toList();
         return LessonDTO.builder()
                 .id(lesson.getId())
                 .level(lesson.getLevel())
-                .content(lesson.getContent())
-                .title(lesson.getTitle())
+                .content(language.equals("Japan") ? lesson.getContentJa() : lesson.getContent())
+                .title(language.equals("Japan") ? lesson.getTitleJa() : lesson.getTitle())
                 .time(lesson.getTime())
-                .describe(lesson.getDescription())
+                .describe(language.equals("Japan") ? lesson.getDescriptionJa() : lesson.getDescription())
                 .vocabularies(vocabularies)
                 .build();
     }
@@ -178,9 +216,9 @@ public class LessonServiceImpl implements ILessonService {
         List<Object[]> results = playerGameRepository.getTop10LessonCompleted();
         Long totalUser = userRepository.totalUser();
         List<LessonDTO> lessonDTOs = new ArrayList<>();
-        for(Object[] obj : results){
+        for (Object[] obj : results) {
             Long lessonId = (Long) obj[0];
-            Long completedCount =  (Long) obj[1];
+            Long completedCount = (Long) obj[1];
             Lesson lesson = lessonRepository.findById(lessonId)
                     .orElseThrow(() -> new EntityNotFoundException("Lesson with id " + lessonId + " not found!"));
             LessonDTO lessonDTO = LessonDTO.builder()

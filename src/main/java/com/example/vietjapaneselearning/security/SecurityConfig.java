@@ -29,7 +29,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth ->
                         auth
-                                .requestMatchers("/api/login","/api/register", "/api/refresh_token", "/api/reset-password", "/api/forgot-password", "/api/game/*/start/*").permitAll()
+                                .requestMatchers("/api/login","/api/register", "/api/refresh_token", "/api/reset-password", "/api/forgot-password", "/api/game/*/start/*", "/api/user/me").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/user", "/api/vocabulary ","/api/game/recent-activities", "/api/lesson/top-lesson").hasAnyRole("ADMIN")
                                 .requestMatchers(HttpMethod.GET, "/api/game/*").permitAll()
                                 .requestMatchers(HttpMethod.DELETE, "/api/lesson/delete_lesson/*").hasAnyRole("ADMIN", "TEACHER")

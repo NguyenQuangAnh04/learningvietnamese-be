@@ -22,9 +22,10 @@ public class Lesson {
 
     @Column(nullable = false, length = 100)
     private String title;
-
+    private String titleJa;
     @Column(columnDefinition = "TEXT")
     private String description;
+    private String descriptionJa;
 
     @Column
     private String video_url;
@@ -33,6 +34,7 @@ public class Lesson {
     private String level;
     @Column
     private String content;
+    private String contentJa;
     @Column
     private LocalDateTime time;
 

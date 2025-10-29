@@ -265,7 +265,8 @@ public class GameServiceImpl implements IGameService {
                 });
         List<QuestionDTO> questions = null;
         // log.info("Game: {}", game);
-
+        User user =currentUserService.getUserCurrent();
+        String language = user.getLanguage();
         if (gameType.getType().equals("MC") || gameType.getType().equals("LS")) {
             questions = multipleChoiceGameQuestionRepository
                     .findByLessonIdAndGameId(lessonId, game.getId())
@@ -274,8 +275,12 @@ public class GameServiceImpl implements IGameService {
                             .gameId(game.getId())
                             .questionId(q.getId())
                             .audio_url(q.isAudioUrl())
-                            .questionText(q.getQuestionText())
-                            .explanation(q.getExplanation())
+                            .questionText(
+                                    language.equals("English")
+                                            ? q.getQuestionText()
+                                            : (q.getQuestionTextJa() != null ? q.getQuestionTextJa() : q.getQuestionText())
+                            )
+                            .explanation(language.equals("English") ? q.getExplanation() : q.getExplanationJa())
                             // .image_url(q.getImage_url())
                             .options(optionRepository.findAllByQuestionId(q.getId())
                                     .stream()
@@ -291,6 +296,7 @@ public class GameServiceImpl implements IGameService {
                             .gameId(q.getGame().getId())
                             .questionId(q.getId())
                             .sentence(Arrays.asList(q.getSentence().split(" ")))
+                            .explanation(language.equals("English") ? q.getDescription() : q.getDescriptionJa())
                             .build())
                     .toList();
 

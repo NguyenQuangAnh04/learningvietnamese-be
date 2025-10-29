@@ -21,6 +21,8 @@ public class QuestionDTO {
     private Long lessonId;
     private String type;
     private String answerText;
+    private String questionTextJa;
+    private String explanationJa;
     private List<String> sentence;
     private List<OptionDTO> options;
 }

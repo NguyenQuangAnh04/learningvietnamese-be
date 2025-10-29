@@ -18,10 +18,11 @@ public class MultipleChoiceQuestion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String questionText;
+    private String questionTextJa;
     private String image_url;
 
     private String explanation;
-
+    private String explanationJa;
     private boolean audioUrl;
 
     @ManyToOne

@@ -10,5 +10,5 @@ public interface IUserService {
     UserDTO getCurrentUser();
     User editProfileUser(UserDTO userDTO);
     Page<UserDTO> getUsers(String nameOrEmail, RoleEnum role, Pageable pageable);
-
+    void translateLanguage(String language);
 }

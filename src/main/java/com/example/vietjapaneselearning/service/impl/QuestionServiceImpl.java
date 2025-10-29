@@ -69,6 +69,8 @@ public class QuestionServiceImpl implements IQuestionService {
                 MultipleChoiceQuestion multipleChoiceQuestion = new MultipleChoiceQuestion();
                 multipleChoiceQuestion.setQuestionText(dto.getQuestionText());
                 multipleChoiceQuestion.setExplanation(dto.getExplanation());
+                multipleChoiceQuestion.setQuestionTextJa(dto.getQuestionTextJa());
+                multipleChoiceQuestion.setExplanationJa(dto.getExplanationJa());
                 if (game.getGameType().getType().equals("LS")) {
                     multipleChoiceQuestion.setAudioUrl(true);
                 }
@@ -91,6 +93,7 @@ public class QuestionServiceImpl implements IQuestionService {
                 ArrangeSentence arrangeSentence = new ArrangeSentence();
                 arrangeSentence.setSentence(String.join(" ", dto.getSentence()));
                 arrangeSentence.setDescription(dto.getExplanation());
+                arrangeSentence.setDescriptionJa(dto.getExplanationJa());
                 arrangeSentence.setLesson(lesson);
                 gameRepository.save(game);
                 arrangeSentence.setGame(game);
@@ -243,6 +246,7 @@ public class QuestionServiceImpl implements IQuestionService {
 //                questionDTO.setQuestionText(getCellValue(row, 0));
                 questionDTO.setSentence(Collections.singletonList(getCellValue(row, 0)));
                 questionDTO.setExplanation(getCellValue(row, 1));
+                questionDTO.setExplanationJa(getCellValue(row, 2));
                 questions.add(questionDTO);
             }
         } catch (Exception e) {
@@ -266,13 +270,17 @@ public class QuestionServiceImpl implements IQuestionService {
                     case LISTEN_CHOICE -> {
                         questionDTO.setQuestionText(getCellValue(row, 0));
                         questionDTO.setExplanation(getCellValue(row, 1));
+                        questionDTO.setExplanationJa(getCellValue(row, 2));
 //                        questionDTO.setAudio_url(getCellValue(row, 2));
-                        populateOptions(row, options, 2, correct);
+                        populateOptions(row, options, 3, correct);
                     }
                     case MULTIPLE_CHOICE -> {
                         questionDTO.setQuestionText(getCellValue(row, 0));
                         questionDTO.setExplanation(getCellValue(row, 1));
-                        populateOptions(row, options, 2, correct);
+                        questionDTO.setQuestionTextJa(getCellValue(row, 2));
+                        questionDTO.setExplanationJa(getCellValue(row, 3));
+
+                        populateOptions(row, options, 4, correct);
                     }
                 }
                 questionDTO.setOptions(options);

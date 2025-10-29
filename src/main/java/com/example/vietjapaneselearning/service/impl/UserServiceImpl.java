@@ -92,5 +92,12 @@ public class UserServiceImpl implements IUserService {
 
     }
 
+    @Override
+    public void translateLanguage(String language) {
+        User user = currentUserService.getUserCurrent();
+        user.setLanguage(language);
+        userRepository.save(user);
+    }
+
 
 }
